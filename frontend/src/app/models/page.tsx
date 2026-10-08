@@ -1,10 +1,13 @@
 "use client";
 /** Models & Accuracy: baseline vs ML comparison (MAE, RMSE, skill, band coverage) + error by lead time. */
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import EChart from "@/components/charts/EChart";
 import { Card, CardTitle, Segmented } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
-import { useModels, useAssumptions } from "@/hooks/api";
+import { useAssumptions } from "@/hooks/api";
+import { api } from "@/lib/api/client";
+import type { ModelsResponse } from "@/lib/api/types";
 import { cssVar } from "@/lib/format";
 
 import ReactMarkdown from "react-markdown";
@@ -12,22 +15,41 @@ import remarkGfm from "remark-gfm";
 
 type Src = "solar" | "wind" | "real";
 
+function useModelsCompare(source: "solar" | "wind", by?: "lead_bucket", daylight?: boolean) {
+  return useQuery({
+    queryKey: ["models", source, by, daylight],
+    queryFn: () =>
+      api<ModelsResponse>(
+        `/models/compare?source=${source}${by ? `&by=${by}` : ""}${daylight ? "&daylight=true" : ""}`
+      ),
+  });
+}
+
 export default function ModelsPage() {
   const [source, setSource] = useState<Src>("solar");
-  const overall = useModels(source === "real" ? "solar" : source);
-  const byLead = useModels(source === "real" ? "solar" : source, "lead_bucket");
+  const [daylightFilter, setDaylightFilter] = useState<"all" | "daylight">("daylight");
+  const isSolar = source === "solar";
+  const daylight = isSolar && daylightFilter === "daylight";
+  const effectiveSource = source === "real" ? "solar" : source;
+  const overall = useModelsCompare(effectiveSource, undefined, daylight);
+  const byLead = useModelsCompare(effectiveSource, "lead_bucket", daylight);
   const best = overall.data?.rows.filter((r) => r.model !== "persistence").sort((a, b) => a.mae - b.mae)[0]?.model;
   const assumptions = useAssumptions();
 
   const option = useMemo(() => {
     if (!byLead.data || source === "real") return null;
-    const buckets = ["1-12", "13-36", "37-48"];
+    const rawBuckets = [...new Set(byLead.data.rows.map((r) => r.lead_bucket).filter((b): b is string => Boolean(b)))];
+    const parseFirstLead = (b: string) => {
+      const m = b.match(/^(\d+)/);
+      return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY;
+    };
+    const buckets = rawBuckets.sort((a, b) => parseFirstLead(a) - parseFirstLead(b));
     const models = [...new Set(byLead.data.rows.map((r) => r.model))];
     const palette = [cssVar("--hybrid"), cssVar("--solar"), cssVar("--wind"), cssVar("--demand"), cssVar("--battery"), cssVar("--backup")];
     return {
       grid: { left: 48, right: 16, top: 32, bottom: 32 },
       tooltip: { trigger: "axis" },
-      legend: { top: 0 },
+      legend: { top: 0, type: "scroll" },
       xAxis: { type: "category", data: buckets, name: "lead (h)" },
       yAxis: { type: "value", name: "nMAE %" },
       series: models.map((m, i) => ({
@@ -38,10 +60,25 @@ export default function ModelsPage() {
     };
   }, [byLead.data, source]);
 
+  const viewLabel = source === "solar"
+    ? ((overall.data ? overall.data.daylight_only : daylightFilter === "daylight") ? "Daylight only" : "All hours")
+    : "All hours";
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="mr-auto text-2xl font-semibold">Models & Accuracy</h1>
+        {source === "solar" && (
+          <Segmented
+            label="Daylight filter"
+            value={daylightFilter}
+            onChange={setDaylightFilter}
+            options={[
+              { value: "all", label: "All hours" },
+              { value: "daylight", label: "Daylight only" },
+            ]}
+          />
+        )}
         <Segmented label="Source" value={source} onChange={setSource}
           options={[{ value: "solar", label: "Solar" }, { value: "wind", label: "Wind" }, { value: "real", label: "Real data" }]} />
       </div>
@@ -51,14 +88,25 @@ export default function ModelsPage() {
           <CardTitle>Results on real generation data</CardTitle>
           <QueryState isLoading={assumptions.isLoading} error={assumptions.error} refetch={assumptions.refetch}>
              <div className="prose-sm max-w-none space-y-2 text-sm [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:px-2 [&_th]:border [&_th]:border-border [&_th]:px-2">
-               <ReactMarkdown remarkPlugins={[remarkGfm]}>{assumptions.data?.real_data_results_md ?? ""}</ReactMarkdown>
+               <ReactMarkdown
+                 remarkPlugins={[remarkGfm]}
+                 components={{
+                   table: ({ children, ...props }) => (
+                     <div className="w-full overflow-x-auto my-2">
+                       <table {...props}>{children}</table>
+                     </div>
+                   ),
+                 }}
+               >
+                 {assumptions.data?.real_data_results_md ?? ""}
+               </ReactMarkdown>
              </div>
           </QueryState>
         </Card>
       ) : (
         <>
           <Card>
-            <CardTitle>Test-period comparison (lower error is better; band coverage should be near 80% / 90%)</CardTitle>
+            <CardTitle>Test-period comparison — {viewLabel} (lower error is better; band coverage should be near 80% / 90%)</CardTitle>
             <QueryState isLoading={overall.isLoading} error={overall.error} refetch={overall.refetch}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm tabular-nums">
@@ -81,6 +129,7 @@ export default function ModelsPage() {
                   </tbody>
                 </table>
               </div>
+              <p className="mt-2 text-xs text-muted">Coverage target: 80% / 90%. All-hours solar coverage is inflated by night hours (output is zero).</p>
             </QueryState>
           </Card>
           <Card>

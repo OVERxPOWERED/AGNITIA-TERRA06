@@ -21,7 +21,7 @@ type TipParam = { seriesId?: string; seriesName?: string; marker?: string; value
 
 export function timeAxisOption(unit: string, extra: Record<string, unknown> = {}) {
   return {
-    grid: { left: 48, right: 16, top: 36, bottom: 40 },
+    grid: { left: 48, right: 36, top: 40, bottom: 40 },
     tooltip: {
       trigger: "axis",
       formatter: (raw: unknown) => {
@@ -30,12 +30,23 @@ export function timeAxisOption(unit: string, extra: Record<string, unknown> = {}
         const t = params[0]?.axisValue ? toIST(new Date(Number(params[0].axisValue)).toISOString()) : "";
         const rows = shown.map((p) => {
           const v = Array.isArray(p.value) ? Number(p.value[1]) : Number(p.value);
+          if (p.seriesId?.endsWith("-mid")) {
+            const stack = p.seriesId.replace(/-mid$/, "");
+            const loParam = params.find((x) => x.seriesId === `${stack}-lo`);
+            const wParam = params.find((x) => x.seriesId === `${stack}-w`);
+            if (loParam && wParam) {
+              const loVal = Array.isArray(loParam.value) ? Number(loParam.value[1]) : Number(loParam.value);
+              const wVal = Array.isArray(wParam.value) ? Number(wParam.value[1]) : Number(wParam.value);
+              const hiVal = loVal + wVal;
+              return `${p.marker ?? ""} ${p.seriesName}: <b>P50 ${v.toFixed(1)} ${unit} (P10 ${loVal.toFixed(1)} – P90 ${hiVal.toFixed(1)})</b>`;
+            }
+          }
           return `${p.marker ?? ""} ${p.seriesName}: <b>${v.toFixed(1)} ${unit}</b>`;
         });
         return [t, ...rows].join("<br/>");
       },
     },
-    legend: { top: 0, type: "scroll" },
+    legend: { top: 0, type: "scroll", left: 60, right: 60 },
     xAxis: { type: "time", name: "IST", axisLabel: { formatter: (v: number) =>
       new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false }).format(v) + "h" } },
     yAxis: { type: "value", name: unit, min: 0 },

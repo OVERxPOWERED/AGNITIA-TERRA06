@@ -15,7 +15,7 @@ export default function TrustPage() {
       <h1 className="text-2xl font-semibold">Forecast Trust</h1>
       <Card>
         <CardTitle>Next 48 hours</CardTitle>
-        <QueryState isLoading={fc.isLoading} error={fc.error} height="h-12">
+        <QueryState isLoading={fc.isLoading} error={fc.error} refetch={fc.refetch} height="h-12">
           {fc.data && <TrustRibbon points={fc.data.points} />}
           <ul className="mt-3 space-y-1 text-sm">
             {lowHours.slice(0, 6).map((p) => <li key={p.target_time_utc}>{toIST(p.target_time_utc)} — trust {p.trust_score}: {p.trust_reason}</li>)}
@@ -24,7 +24,7 @@ export default function TrustPage() {
       </Card>
       <Card>
         <CardTitle>Does the score mean anything? (test period)</CardTitle>
-        <QueryState isLoading={summary.isLoading} error={summary.error} height="h-24">
+        <QueryState isLoading={summary.isLoading} error={summary.error} refetch={summary.refetch} height="h-24">
           <div className="grid gap-4 md:grid-cols-2">
             {(["solar", "wind"] as const).map((s) => {
               const t = summary.data?.[s];

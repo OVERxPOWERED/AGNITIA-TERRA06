@@ -4,7 +4,10 @@ import AppShell from "@/components/shell/AppShell";
 import Providers from "./providers";
 
 export const metadata: Metadata = {
-  title: "TERRA — Hybrid Renewable Control Room",
+  title: {
+    template: "%s — TERRA",
+    default: "Control Room — TERRA",
+  },
   description: "Solar + wind forecasts with calibrated uncertainty, alerts, dispatch and deviation estimates.",
 };
 

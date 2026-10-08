@@ -42,14 +42,12 @@ export default function DispatchPage() {
         <Segmented label="Strategy" value={strategy} onChange={setStrategy}
           options={[{ value: "advisor", label: "TERRA advisor" }, { value: "rule", label: "Rule-based" }, { value: "none", label: "No battery" }]} />
       </div>
-      {k && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Kpi label="Backup (advisor)" value={mwh(k.advisor.backup_mwh, 1)} />
-          <Kpi label="Backup (rule-based)" value={mwh(k.rule.backup_mwh, 1)} />
-          <Kpi label="Backup (no battery)" value={mwh(k.none.backup_mwh, 1)} />
-          <Kpi label="Planned cost (advisor)" value={inr(k.advisor.cost_inr)} hint="cost assumptions in config" />
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <Kpi label="Backup (advisor)" value={k ? mwh(k.advisor.backup_mwh, 1) : "—"} />
+        <Kpi label="Backup (rule-based)" value={k ? mwh(k.rule.backup_mwh, 1) : "—"} />
+        <Kpi label="Backup (no battery)" value={k ? mwh(k.none.backup_mwh, 1) : "—"} />
+        <Kpi label="Planned cost (advisor)" value={k ? inr(k.advisor.cost_inr) : "—"} hint="cost assumptions in config" />
+      </div>
       <Card>
         <CardTitle>Next 48 h plan</CardTitle>
         <QueryState isLoading={d.isLoading} error={d.error} refetch={d.refetch}>
@@ -58,21 +56,23 @@ export default function DispatchPage() {
       </Card>
       <Card>
         <CardTitle>Value of forecast — test period, plans settled on actual generation</CardTitle>
-        <QueryState isLoading={impact.isLoading} error={impact.error} height="h-32">
-          <table className="w-full text-sm tabular-nums">
-            <thead className="text-left text-muted"><tr><th className="px-2 py-1">Forecast used</th><th className="px-2 py-1">Backup MWh</th><th className="px-2 py-1">Curtailed MWh</th><th className="px-2 py-1">Cost</th><th className="px-2 py-1">tCO₂</th></tr></thead>
-            <tbody>
-              {impact.data?.value_of_forecast.map((r) => (
-                <tr key={String(r.strategy)}>
-                  <td className="px-2 py-1">{String(r.strategy)}</td>
-                  <td className="px-2 py-1">{Number(r.backup_mwh).toFixed(0)}</td>
-                  <td className="px-2 py-1">{Number(r.curtail_mwh).toFixed(0)}</td>
-                  <td className="px-2 py-1">{inr(Number(r.cost_inr))}</td>
-                  <td className="px-2 py-1">{Number(r.co2_t).toFixed(0)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <QueryState isLoading={impact.isLoading} error={impact.error} refetch={impact.refetch} height="h-32">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm tabular-nums">
+              <thead className="text-left text-muted"><tr><th className="px-2 py-1">Forecast used</th><th className="px-2 py-1">Backup MWh</th><th className="px-2 py-1">Curtailed MWh</th><th className="px-2 py-1">Cost</th><th className="px-2 py-1">tCO₂</th></tr></thead>
+              <tbody>
+                {impact.data?.value_of_forecast.map((r) => (
+                  <tr key={String(r.strategy)}>
+                    <td className="px-2 py-1">{String(r.strategy)}</td>
+                    <td className="px-2 py-1">{Number(r.backup_mwh).toFixed(0)}</td>
+                    <td className="px-2 py-1">{Number(r.curtail_mwh).toFixed(0)}</td>
+                    <td className="px-2 py-1">{inr(Number(r.cost_inr))}</td>
+                    <td className="px-2 py-1">{Number(r.co2_t).toFixed(0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </QueryState>
       </Card>
     </div>

@@ -27,6 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav aria-label="Main" className="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
+              aria-current={path === n.href ? "page" : undefined}
               className={cn("whitespace-nowrap rounded-lg px-3 py-2 text-sm", path === n.href ? "bg-text text-bg" : "text-muted hover:bg-border/60 hover:text-text")}>
               {n.label}
             </Link>

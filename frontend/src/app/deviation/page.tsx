@@ -17,19 +17,21 @@ export default function DeviationPage() {
       <Card>
         <CardTitle>Estimated deviation charges on held-out days (15-min blocks, day-ahead schedule)</CardTitle>
         <QueryState isLoading={dsm.isLoading} error={dsm.error} refetch={dsm.refetch}>
-          <table className="w-full text-sm tabular-nums">
-            <thead className="text-left text-muted"><tr><th className="px-2 py-1">Source</th><th className="px-2 py-1">Schedule from</th><th className="px-2 py-1">Charges</th><th className="px-2 py-1">Blocks outside tolerance</th></tr></thead>
-            <tbody>
-              {dsm.data?.rows.map((r) => (
-                <tr key={r.source + r.strategy} className={r.strategy === "terra_optimized" ? "font-semibold" : ""}>
-                  <td className="px-2 py-1 capitalize">{r.source}</td>
-                  <td className="px-2 py-1">{r.strategy.replace("_", " ")}</td>
-                  <td className="px-2 py-1">{inr(r.charge_inr)}</td>
-                  <td className="px-2 py-1">{pct(r.blocks_outside_tolerance_pct)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm tabular-nums">
+              <thead className="text-left text-muted"><tr><th className="px-2 py-1">Source</th><th className="px-2 py-1">Schedule from</th><th className="px-2 py-1">Charges</th><th className="px-2 py-1">Blocks outside tolerance</th></tr></thead>
+              <tbody>
+                {dsm.data?.rows.map((r) => (
+                  <tr key={r.source + r.strategy} className={r.strategy === "terra_optimized" ? "font-semibold" : ""}>
+                    <td className="px-2 py-1 capitalize">{r.source}</td>
+                    <td className="px-2 py-1">{r.strategy.replace("_", " ")}</td>
+                    <td className="px-2 py-1">{inr(r.charge_inr)}</td>
+                    <td className="px-2 py-1">{pct(r.blocks_outside_tolerance_pct)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {dsm.data && <p className="mt-2 text-xs text-muted">Optimised schedule level: {Object.entries(dsm.data.chosen_level).map(([k, v]) => `${k} P${Math.round(v * 100)}`).join(", ")}. Tolerance: solar ±5%, wind ±10% (CERC, from 1 Apr 2026).</p>}
         </QueryState>
       </Card>

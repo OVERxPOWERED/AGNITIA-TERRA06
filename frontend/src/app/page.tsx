@@ -35,32 +35,37 @@ export default function ControlRoom() {
   }, [hybrid.data, solar.data, wind.data, dispatch.data]);
 
   const h = hybrid.data?.points ?? [];
-  const energy = h.reduce((s, p) => s + p.q50, 0);
-  const minP = h.length ? Math.min(...h.map((p) => p.q10)) : 0;
-  const maxP = h.length ? Math.max(...h.map((p) => p.q90)) : 0;
-  const avgTrust = h.length ? h.reduce((s, p) => s + p.trust_score, 0) / h.length : 0;
+  const hasData = Boolean(hybrid.data && h.length > 0);
+  const energy = hasData ? h.reduce((s, p) => s + p.q50, 0) : null;
+  const minP = hasData ? Math.min(...h.map((p) => p.q10)) : null;
+  const maxP = hasData ? Math.max(...h.map((p) => p.q90)) : null;
+  const avgTrust = hasData ? h.reduce((s, p) => s + p.trust_score, 0) / h.length : null;
   const upcoming = (alerts.data ?? []).filter((a) => !a.acknowledged).slice(0, 4);
+
+  const isForecastLoading = hybrid.isLoading || solar.isLoading || wind.isLoading || dispatch.isLoading;
+  const forecastError = hybrid.error ?? solar.error ?? wind.error ?? dispatch.error;
+  const refetchForecast = () => Promise.all([hybrid.refetch(), solar.refetch(), wind.refetch(), dispatch.refetch()]);
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-semibold">Control Room</h1>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Kpi label="Next 48 h energy (P50)" value={mwh(energy)} />
-        <Kpi label="Lowest likely (P10)" value={mw(minP)} />
-        <Kpi label="Highest likely (P90)" value={mw(maxP)} />
-        <Kpi label="Average trust" value={`${avgTrust.toFixed(0)} / 100`} />
+        <Kpi label="Next 48 h energy (P50)" value={energy !== null ? mwh(energy) : "—"} />
+        <Kpi label="Lowest likely (P10)" value={minP !== null ? mw(minP) : "—"} />
+        <Kpi label="Highest likely (P90)" value={maxP !== null ? mw(maxP) : "—"} />
+        <Kpi label="Average trust" value={avgTrust !== null ? `${avgTrust.toFixed(0)} / 100` : "—"} />
         <Kpi label="Backup needed (plan)" value={dispatch.data ? mwh(dispatch.data.kpis.advisor.backup_mwh) : "—"} />
       </div>
       <Card>
         <CardTitle>Combined solar + wind forecast with 80% band</CardTitle>
-        <QueryState isLoading={hybrid.isLoading} error={hybrid.error ?? solar.error ?? wind.error} refetch={hybrid.refetch}>
+        <QueryState isLoading={isForecastLoading} error={forecastError} refetch={refetchForecast}>
           {option && <EChart option={option} height={360} ariaLabel="Hybrid forecast for the next 48 hours with P10–P90 band, solar and wind medians and demand" />}
           <div className="mt-3"><TrustRibbon points={h} /></div>
         </QueryState>
       </Card>
       <Card>
         <CardTitle>Next alerts</CardTitle>
-        <QueryState isLoading={alerts.isLoading} error={alerts.error} empty={!upcoming.length} height="h-16">
+        <QueryState isLoading={alerts.isLoading} error={alerts.error} refetch={alerts.refetch} empty={!upcoming.length} height="h-16">
           <ul className="divide-y divide-border">
             {upcoming.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
