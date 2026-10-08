@@ -23,12 +23,12 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 2 | Real plant data & calibration | 8 / 8 | 30 / 30 | Day 2–3 |
 | 3 | Features, baselines, evaluation harness | 5 / 5 | 13 / 13 | Day 3 |
 | 4 | ML models | 9 / 9 | 19 / 19 | Day 4–5 |
-| 5 | Engines: hero features, revenue & impact | 0 / 9 | 0 / 12 | Day 5–7 |
+| 5 | Engines: hero features, revenue & impact | 9 / 9 | 12 / 12 | Day 5–7 |
 | 6 | Backend API | 0 / 6 | 0 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **38 / 79** | **103 / 177** | |
+| | **Total** | **47 / 79** | **115 / 177** | |
 
 ---
 
@@ -224,34 +224,35 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 5 — Engines: hero features, revenue & impact (Day 5–7)
 
 ### 5.1 H1 — Hybrid engine
-- [ ] T5.1.1 `engines/hybrid.py` — ✅ Tested
+- [x] T5.1.1 `engines/hybrid.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.2 H3 — Trust engine
-- [ ] T5.2.1 `engines/trust.py` — ✅ Tested
+- [x] T5.2.1 `engines/trust.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.3 Alerts engine
-- [ ] T5.3.1 `engines/alerts.py` — ✅ Tested
+- [x] T5.3.1 `engines/alerts.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.4 H2 — Battery Dispatch Advisor
-- [ ] T5.4.1 `engines/dispatch.py` — ✅ Tested
+- [x] T5.4.1 `engines/dispatch.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.5 Value-of-forecast backtest
-- [ ] T5.5.1 `engines/value_of_forecast.py` — ✅ Tested
+- [x] T5.5.1 `engines/value_of_forecast.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.6 H4 — What-if engine
-- [ ] T5.6.1 `engines/whatif.py` — ✅ Tested
+- [x] T5.6.1 `engines/whatif.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.7 H5 — Deviation Shield (DSM)
-- [ ] T5.7.1 `engines/dsm.py` — ✅ Tested
-- [ ] T5.7.2 Verify the regulation and replace illustrative rates — 📝 [verify]
+- [x] T5.7.1 `engines/dsm.py` — ✅ Tested ✅ 2026-10-08
+- [x] T5.7.2 Verify the regulation and replace illustrative rates — 📝 [verify] ✅ 2026-10-08
 
 ### 5.8 Impact engine
-- [ ] T5.8.1 `engines/impact.py` — ✅ Tested
+- [x] T5.8.1 `engines/impact.py` — ✅ Tested ✅ 2026-10-08
 
 ### 5.9 Engine tests, evaluation pipeline, accuracy report
-- [ ] T5.9.1 Engine tests — ✅ Tested
-- [ ] T5.9.2 `pipelines/evaluate.py` — ✅ Tested
-- [ ] T5.9.3 `eval/report.py` (accuracy report generator) — ✅ Tested
+- [x] T5.9.1 Engine tests — ✅ Tested ✅ 2026-10-08
+- [x] T5.9.2 `pipelines/evaluate.py` — ✅ Tested ✅ 2026-10-08
+- [x] T5.9.3 `eval/report.py` (accuracy report generator) — ✅ Tested ✅ 2026-10-08
+
 
 ## Phase 6 — Backend API (Day 5–7, in parallel with Phase 5)
 
