@@ -25,10 +25,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 4 | ML models | 9 / 9 | 19 / 19 | Day 4–5 |
 | 5 | Engines: hero features, revenue & impact | 9 / 9 | 12 / 12 | Day 5–7 |
 | 6 | Backend API | 6 / 6 | 17 / 17 | Day 5–7, in parallel with Phase 5 |
-| 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
+| 7 | Frontend | 13 / 13 | 22 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **53 / 79** | **132 / 177** | |
+| | **Total** | **66 / 79** | **154 / 177** | |
 
 ---
 
@@ -288,52 +288,52 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 7 — Frontend (Day 4–9)
 
 ### 7.1 Design system & layout
-- [ ] T7.1.1 Theme tokens — ✅ Tested
-- [ ] T7.1.2 Utilities — ✅ Tested
-- [ ] T7.1.3 UI primitives and query states — ✅ Tested
-- [ ] T7.1.4 App shell, providers, layout — ✅ Tested
+- [x] T7.1.1 Theme tokens — ✅ Tested ✅ 2026-10-08
+- [x] T7.1.2 Utilities — ✅ Tested ✅ 2026-10-08
+- [x] T7.1.3 UI primitives and query states — ✅ Tested ✅ 2026-10-08
+- [x] T7.1.4 App shell, providers, layout — ✅ Tested ✅ 2026-10-08
 
 ### 7.2 API client & state
-- [ ] T7.2.1 Generate API types — 📝
-- [ ] T7.2.2 Fetch wrapper and type aliases — ✅ Tested
-- [ ] T7.2.3 Data hooks (one per endpoint) + SSE — ✅ Tested
+- [x] T7.2.1 Generate API types — 📝 ✅ 2026-10-08
+- [x] T7.2.2 Fetch wrapper and type aliases — ✅ Tested ✅ 2026-10-08
+- [x] T7.2.3 Data hooks (one per endpoint) + SSE — ✅ Tested ✅ 2026-10-08
 
 ### 7.3 Control Room (H1)
-- [ ] T7.3.1 Chart building blocks — ✅ Tested
-- [ ] T7.3.2 Control Room page — ✅ Tested
+- [x] T7.3.1 Chart building blocks — ✅ Tested ✅ 2026-10-08
+- [x] T7.3.2 Control Room page — ✅ Tested ✅ 2026-10-08
 
 ### 7.4 Forecast Explorer (actual vs predicted)
-- [ ] T7.4.1 `forecast/page.tsx` — ✅ Tested
+- [x] T7.4.1 `forecast/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.5 Models & Accuracy
-- [ ] T7.5.1 `models/page.tsx` — ✅ Tested
-- [ ] T7.5.2 Real-data tab — 📝
+- [x] T7.5.1 `models/page.tsx` — ✅ Tested ✅ 2026-10-08
+- [x] T7.5.2 Real-data tab — 📝 ✅ 2026-10-08
 
 ### 7.6 Trust Layer UI (H3)
-- [ ] T7.6.1 `trust/page.tsx` — ✅ Tested
+- [x] T7.6.1 `trust/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.7 Alerts Center
-- [ ] T7.7.1 `alerts/page.tsx` — ✅ Tested
+- [x] T7.7.1 `alerts/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.8 Dispatch Advisor (H2)
-- [ ] T7.8.1 `dispatch/page.tsx` — ✅ Tested
+- [x] T7.8.1 `dispatch/page.tsx` — ✅ Tested ✅ 2026-10-08
 
-### 7.9 What-if Simulator (H4)
-- [ ] T7.9.1 `whatif/page.tsx` — ✅ Tested
+### 7.9 What-If Simulator (H4)
+- [x] T7.9.1 `whatif/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.10 Deviation Shield (H5)
-- [ ] T7.10.1 `deviation/page.tsx` — ✅ Tested
+- [x] T7.10.1 `deviation/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.11 Impact page
-- [ ] T7.11.1 `impact/page.tsx` — ✅ Tested
+- [x] T7.11.1 `impact/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.12 Assumptions & provenance
-- [ ] T7.12.1 `assumptions/page.tsx` — ✅ Tested
+- [x] T7.12.1 `assumptions/page.tsx` — ✅ Tested ✅ 2026-10-08
 
 ### 7.13 Polish
-- [ ] T7.13.1 Visual pass — 📝
-- [ ] T7.13.2 Accessibility — 📝
-- [ ] T7.13.3 Lint, types, build — 📝
+- [x] T7.13.1 Visual pass — 📝 ✅ 2026-10-08
+- [x] T7.13.2 Accessibility — 📝 ✅ 2026-10-08
+- [x] T7.13.3 Lint, types, build — 📝 ✅ 2026-10-08
 
 ## Phase 8 — Integration (Day 8–9)
 
