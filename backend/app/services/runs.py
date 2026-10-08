@@ -58,11 +58,13 @@ def evaluation() -> dict:
     return json.loads(p.read_text())
 
 
-def compare_models(source: str, split: str = "test", by: str | None = None) -> pd.DataFrame:
+@lru_cache(maxsize=16)
+def compare_models(source: str, split: str = "test", by: str | None = None, daylight: bool = False) -> pd.DataFrame:
     cfg = load_config()
     p = backtest(source)
     p = p[p["split"] == split]
-    return metrics_table(p, cfg.capacity_mw(source), by=[by] if by else None)
+    is_daylight = daylight and source == "solar"
+    return metrics_table(p, cfg.capacity_mw(source), by=[by] if by else None, daylight_only=is_daylight)
 
 
 def read_doc(name: str) -> str:
@@ -74,6 +76,7 @@ def clear_cache() -> None:
     _load.cache_clear()
     backtest.cache_clear()
     evaluation.cache_clear()
+    compare_models.cache_clear()
 
 
 def run_dir(name: str) -> Path:

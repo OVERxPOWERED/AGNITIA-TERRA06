@@ -54,3 +54,27 @@ def test_whatif_validation(client):
 def test_schedule_csv(client):
     r = client.get("/dsm/schedule.csv?source=hybrid")
     assert r.status_code == 200 and r.text.startswith("block_no")
+
+
+def test_models_compare_daylight(client):
+    # Solar all-hours vs daylight-only
+    r_all = client.get("/models/compare?source=solar")
+    assert r_all.status_code == 200
+    j_all = r_all.json()
+    assert j_all["daylight_only"] is False
+
+    r_day = client.get("/models/compare?source=solar&daylight=true")
+    assert r_day.status_code == 200
+    j_day = r_day.json()
+    assert j_day["daylight_only"] is True
+
+    ens_all = next(row for row in j_all["rows"] if row["model"] == "ensemble")
+    ens_day = next(row for row in j_day["rows"] if row["model"] == "ensemble")
+    assert ens_day["picp80"] < ens_all["picp80"]
+
+    # Wind with daylight=true returns same as all hours, daylight_only is False
+    r_wind = client.get("/models/compare?source=wind&daylight=true")
+    assert r_wind.status_code == 200
+    j_wind = r_wind.json()
+    assert j_wind["daylight_only"] is False
+

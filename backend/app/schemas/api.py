@@ -92,6 +92,7 @@ class ModelsResponse(BaseModel):
     source: Literal["solar", "wind"]
     split: str
     rows: list[ModelRow]
+    daylight_only: bool = False
 
 
 class AlertOut(BaseModel):
