@@ -1,1 +1,1 @@
-Phase 5 complete. Next: Phase 6 Backend API.
+Phase 6 complete. Next: Phase 7 Frontend.

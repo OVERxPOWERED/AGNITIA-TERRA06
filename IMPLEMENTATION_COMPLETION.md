@@ -24,11 +24,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 3 | Features, baselines, evaluation harness | 5 / 5 | 13 / 13 | Day 3 |
 | 4 | ML models | 9 / 9 | 19 / 19 | Day 4–5 |
 | 5 | Engines: hero features, revenue & impact | 9 / 9 | 12 / 12 | Day 5–7 |
-| 6 | Backend API | 0 / 6 | 0 / 17 | Day 5–7, in parallel with Phase 5 |
+| 6 | Backend API | 6 / 6 | 17 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **47 / 79** | **115 / 177** | |
+| | **Total** | **53 / 79** | **132 / 177** | |
 
 ---
 
@@ -257,33 +257,33 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 6 — Backend API (Day 5–7, in parallel with Phase 5)
 
 ### 6.1 API contract
-- [ ] T6.1.1 `app/schemas/api.py` — ✅ Tested
-- [ ] T6.1.2 Update the contract document — 📝
+- [x] T6.1.1 `app/schemas/api.py` — ✅ Tested ✅ 2026-10-08
+- [x] T6.1.2 Update the contract document — 📝 ✅ 2026-10-08
 
 ### 6.2 Forecast pipeline & scheduler
-- [ ] T6.2.1 `ml/terra/pipelines/forecast.py` — ✅ Tested · 🧩
-- [ ] T6.2.2 Replay run — 📝
-- [ ] T6.2.3 Live run — 📝
-- [ ] T6.2.4 `app/scheduler.py` — ✅ Tested
+- [x] T6.2.1 `ml/terra/pipelines/forecast.py` — ✅ Tested · 🧩 ✅ 2026-10-08
+- [x] T6.2.2 Replay run — 📝 ✅ 2026-10-08
+- [x] T6.2.3 Live run — 📝 ✅ 2026-10-08
+- [x] T6.2.4 `app/scheduler.py` — ✅ Tested ✅ 2026-10-08
 
 ### 6.3 Settings & storage
-- [ ] T6.3.1 `app/settings.py` — ✅ Tested
-- [ ] T6.3.2 `app/db/models.py` — ✅ Tested
+- [x] T6.3.1 `app/settings.py` — ✅ Tested ✅ 2026-10-08
+- [x] T6.3.2 `app/db/models.py` — ✅ Tested ✅ 2026-10-08
 
 ### 6.4 Services, routes, app
-- [ ] T6.4.1 `app/services/runs.py` — ✅ Tested
-- [ ] T6.4.2 `app/services/whatif.py` — ✅ Tested
-- [ ] T6.4.3 Route modules — ✅ Tested
-- [ ] T6.4.4 `app/main.py` (replaces the temporary file from T0.5.2) — ✅ Tested
+- [x] T6.4.1 `app/services/runs.py` — ✅ Tested ✅ 2026-10-08
+- [x] T6.4.2 `app/services/whatif.py` — ✅ Tested ✅ 2026-10-08
+- [x] T6.4.3 Route modules — ✅ Tested ✅ 2026-10-08
+- [x] T6.4.4 `app/main.py` (replaces the temporary file from T0.5.2) — ✅ Tested ✅ 2026-10-08
 
 ### 6.5 Replay mode & live updates
-- [ ] T6.5.1 Configure and observe replay — 📝
-- [ ] T6.5.2 Live mode — 📝
+- [x] T6.5.1 Configure and observe replay — 📝 ✅ 2026-10-08
+- [x] T6.5.2 Live mode — 📝 ✅ 2026-10-08
 
 ### 6.6 Backend tests & CI
-- [ ] T6.6.1 `backend/tests/test_api.py` — ✅ Tested
-- [ ] T6.6.2 Run the tests — 📝
-- [ ] T6.6.3 Re-enable the full CI job — 📝
+- [x] T6.6.1 `backend/tests/test_api.py` — ✅ Tested ✅ 2026-10-08
+- [x] T6.6.2 Run the tests — 📝 ✅ 2026-10-08
+- [x] T6.6.3 Re-enable the full CI job — 📝 ✅ 2026-10-08
 
 ## Phase 7 — Frontend (Day 4–9)
 
