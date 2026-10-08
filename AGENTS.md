@@ -7,6 +7,7 @@ Instructions for AI coding agents (Claude Code, Codex, Cursor, Copilot, Gemini C
 **TERRA** — a hybrid solar + wind generation forecasting platform for a virtual co-located plant in the Dewas wind belt near Indore, Madhya Pradesh. It forecasts hourly generation for the next 24–48 h, compares a simple baseline against ML models (LightGBM quantile, Chronos-2), shows MAE/RMSE and a calibrated uncertainty band, raises low/high generation alerts, plans battery/backup dispatch, and estimates deviation (DSM) charges. Built for a 10-day hackathon by 2 developers.
 
 - Plan: [`ROADMAP.md`](./ROADMAP.md) (phases → subphases with *Steps* and *Done when*)
+- Build guide: [IMPLEMENTATION_ROADMAP.md](./IMPLEMENTATION_ROADMAP.md) · tracker: [IMPLEMENTATION_COMPLETION.md](./IMPLEMENTATION_COMPLETION.md)
 - Progress: [`COMPLETION.md`](./COMPLETION.md)
 - Current state & next steps: [`.agent/memory/handoff.md`](./.agent/memory/handoff.md)
 - Decisions: [`.agent/context/decisions.md`](./.agent/context/decisions.md)
@@ -40,7 +41,7 @@ If a target does not exist yet, it belongs to subphase 0.6 — create it there, 
 
 ## How to work (every task)
 
-1. Find the subphase in `ROADMAP.md` that the task belongs to. If none fits, ask the user or add it to the roadmap **and** `COMPLETION.md` with the same ID.
+1. Find the subphase in `IMPLEMENTATION_ROADMAP.md` that the task belongs to. If none fits, ask the user or add it to the roadmap **and** `COMPLETION.md` with the same ID.
 2. Read `.agent/memory/handoff.md` and the relevant `.agent/rules/*` and `.agent/context/*` files.
 3. Follow the subphase *Steps*. Small commits, one concern each.
 4. Run tests and lint for the area you touched.

@@ -25,3 +25,8 @@ All ML/energy libraries are Python; OpenAPI → TypeScript types for Next.js.
 
 ## ADR-001 — Hybrid solar + wind scope (2026-10-07)
 10 days is enough for both; complementarity is a stronger story than either alone.
+
+## ADR-003: Site Facts
+- Confirmed site is at Jamgudrani hills ridge east of Dewas town (approx 35-40km from Indore).
+- Confirmed elevation is 536.0m from Open-Meteo.
+

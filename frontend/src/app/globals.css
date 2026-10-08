@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/* Design tokens. Series colours are fixed meaning across every chart:
+   solar = amber, wind = teal, hybrid = indigo, demand = slate, battery = violet, backup = stone. */
+:root {
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --border: #e4e4e0;
+  --text: #1c1c1a;
+  --muted: #6b6b66;
+  --solar: #d97706;
+  --wind: #0d9488;
+  --hybrid: #4f46e5;
+  --demand: #475569;
+  --battery: #7c3aed;
+  --backup: #78716c;
+  --good: #15803d;
+  --warn: #b45309;
+  --bad: #b91c1c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2f3a;
+    --text: #e8e8e6;
+    --muted: #9a9ca3;
+    --solar: #f59e0b;
+    --wind: #2dd4bf;
+    --hybrid: #818cf8;
+    --demand: #94a3b8;
+    --battery: #a78bfa;
+    --backup: #a8a29e;
+    --good: #4ade80;
+    --warn: #fbbf24;
+    --bad: #f87171;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-solar: var(--solar);
+  --color-wind: var(--wind);
+  --color-hybrid: var(--hybrid);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

@@ -1,0 +1,24 @@
+# Local one-command run (replay mode). Requires artifacts produced by `make demo-synthetic` or the real pipeline.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      TERRA_MODE: replay
+      TERRA_CORS_ORIGINS: http://localhost:3000
+      TERRA_DB_URL: sqlite:////app/artifacts/terra.db
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+    ports:
+      - "8000:8000"
+  web:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api

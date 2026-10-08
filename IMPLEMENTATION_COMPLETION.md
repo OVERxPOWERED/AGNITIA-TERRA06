@@ -18,7 +18,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 
 | Phase | Name | Subphases done | Tasks done | Target days |
 |---|---|---|---|---|
-| 0 | Foundations | 0 / 7 | 0 / 23 | Day 1 |
+| 0 | Foundations | 7 / 7 | 23 / 23 | Day 1 |
 | 1 | Weather data & digital twin | 0 / 9 | 0 / 18 | Day 1–2 |
 | 2 | Real plant data & calibration | 0 / 8 | 0 / 30 | Day 2–3 |
 | 3 | Features, baselines, evaluation harness | 0 / 5 | 0 / 13 | Day 3 |
@@ -28,48 +28,48 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **0 / 79** | **0 / 177** | |
+| | **Total** | **7 / 79** | **23 / 177** | |
 
 ---
 
 ## Phase 0 — Foundations (Day 1)
 
 ### 0.1 Repo scaffold & conventions
-- [ ] T0.1.1 Root config files — ✅ Tested
-- [ ] T0.1.2 LICENSE — 📝 Write from spec
-- [ ] T0.1.3 README skeleton — 📝 Write from spec
-- [ ] T0.1.4 Data and artifact folders — 📝 Write from spec
-- [ ] T0.1.5 First commit — 📝
+- [x] T0.1.1 Root config files — ✅ Tested ✅ 2026-10-08
+- [x] T0.1.2 LICENSE — 📝 Write from spec ✅ 2026-10-08
+- [x] T0.1.3 README skeleton — 📝 Write from spec ✅ 2026-10-08
+- [x] T0.1.4 Data and artifact folders — 📝 Write from spec ✅ 2026-10-08
+- [x] T0.1.5 First commit — 📝 ✅ 2026-10-08
 
 ### 0.2 Python environment for `ml/`
-- [ ] T0.2.1 `ml/pyproject.toml` — ✅ Tested
-- [ ] T0.2.2 Package skeleton — 📝 Write from spec
-- [ ] T0.2.3 Create the virtual environment and install — 📝
-- [ ] T0.2.4 Align the agent rule files with this guide — 📝
+- [x] T0.2.1 `ml/pyproject.toml` — ✅ Tested ✅ 2026-10-08
+- [x] T0.2.2 Package skeleton — 📝 Write from spec ✅ 2026-10-08
+- [x] T0.2.3 Create the virtual environment and install — 📝 ✅ 2026-10-08
+- [x] T0.2.4 Align the agent rule files with this guide — 📝 ✅ 2026-10-08
 
 ### 0.3 Site & plant configuration
-- [ ] T0.3.1 `config/site.yaml` — ✅ Tested
-- [ ] T0.3.2 `config/dsm.yaml` — ✅ Tested
-- [ ] T0.3.3 `paths.py` and `logs.py` — ✅ Tested
-- [ ] T0.3.4 `schema.py` (column-name contract) — ✅ Tested
-- [ ] T0.3.5 `config.py` (typed config) — ✅ Tested
-- [ ] T0.3.6 Test fixtures and config tests — ✅ Tested
-- [ ] T0.3.7 Confirm site facts — 📝 [verify]
+- [x] T0.3.1 `config/site.yaml` — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.2 `config/dsm.yaml` — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.3 `paths.py` and `logs.py` — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.4 `schema.py` (column-name contract) — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.5 `config.py` (typed config) — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.6 Test fixtures and config tests — ✅ Tested ✅ 2026-10-08
+- [x] T0.3.7 Confirm site facts — 📝 [verify] ✅ 2026-10-08
 
 ### 0.4 Frontend scaffold
-- [ ] T0.4.1 Create the Next.js app — 📝
-- [ ] T0.4.2 Remove template content — 📝
+- [x] T0.4.1 Create the Next.js app — 📝 ✅ 2026-10-08
+- [x] T0.4.2 Remove template content — 📝 ✅ 2026-10-08
 
 ### 0.5 Backend scaffold
-- [ ] T0.5.1 `backend/pyproject.toml` and `.env.example` — ✅ Tested
-- [ ] T0.5.2 Package skeleton and temporary app — 📝
+- [x] T0.5.1 `backend/pyproject.toml` and `.env.example` — ✅ Tested ✅ 2026-10-08
+- [x] T0.5.2 Package skeleton and temporary app — 📝 ✅ 2026-10-08
 
 ### 0.6 CI & dev ergonomics
-- [ ] T0.6.1 Makefile — ✅ Tested
-- [ ] T0.6.2 GitHub Actions CI — ✅ Tested, 📝
+- [x] T0.6.1 Makefile — ✅ Tested ✅ 2026-10-08
+- [x] T0.6.2 GitHub Actions CI — ✅ Tested, 📝 ✅ 2026-10-08
 
 ### 0.7 AI agent tooling
-- [ ] T0.7.1 Verify agent files — 📝
+- [x] T0.7.1 Verify agent files — 📝 ✅ 2026-10-08
 
 ## Phase 1 — Weather data & digital twin (Day 1–2)
 
@@ -431,4 +431,6 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 
 | Date | Task / subphase | Note |
 |---|---|---|
+| 2026-10-08 | 0.2 | Python environment for ml/ completed |
+| 2026-10-08 | 0.1 | Repo scaffold completed |
 | 2026-10-08 | — | v3 build guide + tracker created; reference code tested on synthetic data during planning |

@@ -1,0 +1,19 @@
+# Deviation Settlement Mechanism (DSM) profile used by the Deviation Shield engine (task 5.7).
+# verified: tolerance bands from 2026-04-01 (solar/hybrid 5 %, wind 10 %) and the FY2026-27 X factor (100 %).
+# NOT verified: the charge slabs/rates below are ILLUSTRATIVE placeholders. Replace them with the rates in
+# the CERC DSM Regulations 2024 (or MPERC rules for intra-state plants) before quoting rupee numbers.
+illustrative: true
+regulation: "CERC DSM Regulations 2024 (X-factor order effective 2026-04-01)"
+block_minutes: 15
+tolerance_pct:
+  solar: 5.0
+  wind: 10.0
+  hybrid: 5.0
+x_factor:            # weight of available capacity in the deviation denominator (FY2026-27 = 1.0)
+  solar: 1.0
+  wind: 1.0
+  hybrid: 1.0
+slabs:               # deviation % (of denominator) beyond tolerance -> INR per kWh of deviation energy
+  - {upto_pct: 10.0, inr_per_kwh: 0.50}
+  - {upto_pct: 20.0, inr_per_kwh: 1.00}
+  - {upto_pct: 1000.0, inr_per_kwh: 1.50}

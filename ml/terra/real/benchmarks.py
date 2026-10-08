@@ -1,0 +1,114 @@
+"""Real-data forecasting benchmarks.
+
+A (R1, Indian solar plant, 34 days): day-ahead persistence vs LightGBM fed with
+   (i) persistence of irradiance (realistic) and (ii) next-day measured irradiance (oracle upper bound).
+B (R3, all-India hourly solar & wind): day-ahead persistence vs LightGBM with Open-Meteo weather at RE hubs.
+   Uses Previous Runs (true forecasts) where the period overlaps Jan 2024+, else Archive weather and is labelled
+   "weather-known upper bound".
+"""
+from __future__ import annotations
+
+import lightgbm as lgb
+import numpy as np
+import pandas as pd
+
+from terra.data.openmeteo import OpenMeteoClient
+from terra.eval.metrics import mae, rmse, skill
+from terra.logs import get_logger
+from terra.paths import DOCS
+from terra.real.loaders import load_india_hourly, load_kaggle_solar
+
+log = get_logger(__name__)
+
+# Representative RE hubs (lat, lon). [verify] adjust to the states with most installed capacity.
+HUBS = {"jodhpur": (26.24, 73.02), "bhuj": (23.25, 69.67), "anantapur": (14.68, 77.60),
+        "tirunelveli": (8.71, 77.76), "dewas": (22.96, 76.05), "satara": (17.68, 74.02)}
+PARAMS = dict(objective="l1", n_estimators=800, learning_rate=0.03, num_leaves=31, min_child_samples=20, verbose=-1)
+
+
+def _row(name: str, y: np.ndarray, p: np.ndarray, base_mae: float, cap: float, note: str = "") -> dict:
+    return {"model": name, "mae": mae(y, p), "rmse": rmse(y, p), "nmae_pct": 100 * mae(y, p) / cap,
+            "skill_vs_persistence": skill(mae(y, p), base_mae), "note": note}
+
+
+def benchmark_a() -> pd.DataFrame:
+    rows = []
+    for plant in (1, 2):
+        d = load_kaggle_solar(plant).dropna(subset=["ac_mw", "irradiation_wm2"])
+        d = d.asfreq("h")
+        y = d["ac_mw"]
+        cap = float(y.max())
+        X = pd.DataFrame({"hour": d.index.tz_convert("Asia/Kolkata").hour, "lag24": y.shift(24),
+                          "irr_lag24": d["irradiation_wm2"].shift(24), "irr_oracle": d["irradiation_wm2"]})
+        ok = X["lag24"].notna() & y.notna()
+        X, yy = X[ok], y[ok]
+        cut = X.index[int(len(X) * 0.7)]
+        tr, te = X.index < cut, X.index >= cut
+        base = mae(yy[te].to_numpy(), X.loc[te, "lag24"].to_numpy())
+        rows.append({"plant": plant, **_row("persistence", yy[te].to_numpy(), X.loc[te, "lag24"].to_numpy(), base, cap)})
+        for feats, note in ((["hour", "lag24", "irr_lag24"], "realistic"), (["hour", "lag24", "irr_oracle"], "oracle")):
+            m = lgb.LGBMRegressor(**PARAMS).fit(X.loc[tr, feats], yy[tr])
+            rows.append({"plant": plant, **_row(f"gbm_{note}", yy[te].to_numpy(), m.predict(X.loc[te, feats]),
+                                                base, cap, note)})
+    return pd.DataFrame(rows)
+
+
+def hub_weather(start: str, end: str) -> tuple[pd.DataFrame, str]:
+    client = OpenMeteoClient()
+    use_forecast = pd.Timestamp(start) >= pd.Timestamp("2024-01-01")
+    frames = []
+    for name, (lat, lon) in HUBS.items():
+        if use_forecast:
+            w = client.fetch_previous_runs(lat, lon, start, end, ["ghi", "ws100", "t2m", "cloud"], days=(1,))
+            w = w.rename(columns=lambda c: c.replace("fx1_", ""))
+        else:
+            w = client.fetch_archive(lat, lon, start, end, ["ghi", "ws100", "t2m", "cloud"])
+            w = w.rename(columns=lambda c: c.replace("act_", ""))
+        frames.append(w.add_prefix(f"{name}_"))
+    label = "day-ahead NWP forecast" if use_forecast else "weather-known upper bound (reanalysis)"
+    return pd.concat(frames, axis=1), label
+
+
+def benchmark_b() -> pd.DataFrame:
+    r = load_india_hourly()
+    start = max(r.index.min(), pd.Timestamp("2024-01-01", tz="UTC")) if r.index.max() >= pd.Timestamp(
+        "2024-03-01", tz="UTC") else r.index.min()
+    r = r.loc[start:]
+    wx, label = hub_weather(r.index.min().strftime("%Y-%m-%d"), r.index.max().strftime("%Y-%m-%d"))
+    rows = []
+    for s in ("solar", "wind"):
+        y = r[f"{s}_mw"].asfreq("h")
+        X = wx.reindex(y.index)
+        X["hour"] = y.index.tz_convert("Asia/Kolkata").hour
+        X["doy"] = y.index.dayofyear
+        X["lag24"], X["lag48"] = y.shift(24), y.shift(48)
+        X["ghi_mean"] = X.filter(like="_ghi").mean(axis=1)
+        X["ws100_cubed_mean"] = (X.filter(like="_ws100") ** 3).mean(axis=1)
+        ok = X["lag48"].notna() & y.notna()
+        X, yy = X[ok], y[ok]
+        cut = X.index[int(len(X) * 0.75)]
+        tr, te = X.index < cut, X.index >= cut
+        cap = float(yy.max())
+        base = mae(yy[te].to_numpy(), X.loc[te, "lag24"].to_numpy())
+        rows.append({"source": s, **_row("persistence", yy[te].to_numpy(), X.loc[te, "lag24"].to_numpy(), base, cap)})
+        m = lgb.LGBMRegressor(**PARAMS).fit(X[tr], yy[tr])
+        rows.append({"source": s, **_row("gbm", yy[te].to_numpy(), m.predict(X[te]), base, cap, label)})
+    return pd.DataFrame(rows)
+
+
+def run_all() -> None:
+    lines = ["# Real-data results", "", "Generated by `terra real-benchmark`. Numbers on REAL generation data.", ""]
+    try:
+        a = benchmark_a()
+        lines += ["## A — Indian solar plants (Kaggle, 34 days, day-ahead)", "",
+                  a.round(3).to_markdown(index=False), ""]
+    except FileNotFoundError as e:
+        lines += [f"## A — skipped ({e})", ""]
+    try:
+        b = benchmark_b()
+        lines += ["## B — All-India hourly solar & wind (Grid-India via Mendeley)", "",
+                  b.round(3).to_markdown(index=False), ""]
+    except FileNotFoundError as e:
+        lines += [f"## B — skipped ({e})", ""]
+    DOCS.mkdir(parents=True, exist_ok=True)
+    (DOCS / "real-data-results.md").write_text("\n".join(lines))

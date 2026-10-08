@@ -7,10 +7,10 @@ description: Python, data and ML coding standards for the ml/terra package.
 # Python / ML rules
 
 ## Style
-- Python 3.11, type hints on public functions, `ruff` clean (line length 100), docstrings with units.
+- Python 3.11, type hints on public functions, `ruff` clean (line length 125), docstrings with units.
 - Pure functions where possible; I/O at the edges (`pipelines/`, `data/openmeteo.py`).
 - Use `pathlib` and `terra.paths` constants; never hard-code absolute paths.
-- Logging via `terra.logging.get_logger(__name__)`; no `print` in package code.
+- Logging via `terra.logs.get_logger(__name__)`; no `print` in package code.
 - Config via `terra.config.load()`; pass config objects, don't re-read YAML deep inside functions.
 
 ## Data
@@ -20,7 +20,7 @@ description: Python, data and ML coding standards for the ml/terra package.
 - Cache external API responses under `data/raw/`; code must run offline after first fetch.
 
 ## Modelling
-- All models implement `terra.models.base.ForecastModel` (`fit`, `predict` → quantile DataFrame `q05,q10,q50,q90,q95`, `save`, `load`, `name`).
+- All models subclass `terra.models.base.ForecastModel` (`fit(X, y, X_val, y_val)`, `predict(X)` → DataFrame `q05,q10,q50,q90,q95`, `save`, `load`).
 - Quantiles must be monotone and clipped to `[0, capacity]`; solar is 0 when sun elevation < 0.
 - Evaluate only via `terra.eval.backtest`; slices: lead bucket (1–12, 13–36, 37–48), hour, month, daylight.
 - Seed everything (`numpy`, `lightgbm`, `torch`); record seeds in `meta.json`.

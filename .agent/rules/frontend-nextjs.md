@@ -15,5 +15,5 @@ description: Next.js frontend conventions (App Router, data fetching, charts, de
 - Every page: loading skeleton, error state with retry, empty state, and the attribution footer ("Weather data by Open-Meteo.com (CC BY 4.0) · Plant: TERRA virtual twin").
 - Mode badge LIVE / REPLAY always visible in the header.
 - Accessibility: chart `aria-label` summaries, keyboard-reachable controls, contrast AA.
-- Components: shadcn/ui in `src/components/ui/`; feature components in `src/components/<feature>/`.
+- UI primitives live in `src/components/ui/primitives.tsx` (no UI kit); charts use the in-house `EChart` wrapper in `src/components/charts/`.
 - `npm run lint && npm run build` must pass before commit.
