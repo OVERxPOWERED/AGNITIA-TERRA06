@@ -1,7 +1,7 @@
 # Data assumptions
 
 ## Site
-TERRA Dewas Hybrid (virtual plant). 
+TERRA Dewas Hybrid (virtual plant). This is a simulated plant, not real operator data. 
 Location: Jamgudrani hills wind area, Dewas district, Madhya Pradesh (Latitude: 22.96, Longitude: 76.05).
 Altitude: 536.0m.
 

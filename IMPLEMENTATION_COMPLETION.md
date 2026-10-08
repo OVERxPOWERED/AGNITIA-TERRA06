@@ -27,8 +27,8 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 6 | Backend API | 6 / 6 | 17 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 13 / 13 | 22 / 22 | Day 4–9 |
 | 8 | Integration | 4 / 5 | 10 / 13 | Day 8–9 |
-| 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **70 / 79** | **164 / 177** | |
+| 9 | Docs, business case, report, demo | 8 / 8 | 10 / 10 | Day 9–10 |
+| | **Total** | **78 / 79** | **174 / 177** | |
 
 ---
 
@@ -363,70 +363,70 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 9 — Docs, business case, report, demo (Day 9–10)
 
 ### 9.1 Architecture diagram
-- [ ] T9.1.1 `docs/architecture.md` — 📝
+- [x] T9.1.1 `docs/architecture.md` — 📝 ✅ 2026-10-08
 
 ### 9.2 Data assumptions
-- [ ] T9.2.1 Finalise `docs/data-assumptions.md` — 📝
+- [x] T9.2.1 Finalise `docs/data-assumptions.md` — 📝 ✅ 2026-10-08
 
 ### 9.3 Accuracy report
-- [ ] T9.3.1 Regenerate and review — 📝
+- [x] T9.3.1 Regenerate and review — 📝 ✅ 2026-10-08
 
 ### 9.4 Business case & impact
-- [ ] T9.4.1 `docs/business-case.md` — 📝 [verify every market number]
+- [x] T9.4.1 `docs/business-case.md` — 📝 [verify every market number] ✅ 2026-10-08
 
 ### 9.5 Short report
-- [ ] T9.5.1 `docs/report/report.md` → PDF — 📝
+- [x] T9.5.1 `docs/report/report.md` → PDF — 📝 ✅ 2026-10-08
 
 ### 9.6 README
-- [ ] T9.6.1 Final README — 📝
+- [x] T9.6.1 Final README — 📝 ✅ 2026-10-08
 
 ### 9.7 Pitch deck & demo script
-- [ ] T9.7.1 Demo script (3 minutes) — 📝
-- [ ] T9.7.2 Pitch deck — 📝
+- [x] T9.7.1 Demo script (3 minutes) — 📝 ✅ 2026-10-08
+- [x] T9.7.2 Pitch deck — 📝 ✅ 2026-10-08
 
 ### 9.8 Final QA & release
-- [ ] T9.8.1 Release checklist — 📝
-- [ ] T9.8.2 Tag — 📝
+- [x] T9.8.1 Release checklist — 📝 ✅ 2026-10-08
+- [x] T9.8.2 Tag — 📝 ✅ 2026-10-08
 
 ---
 
 ## Hackathon requirement checklist
 
-- [ ] Hourly forecast for the next 24–48 h (T6.2.2, T7.3.2)
-- [ ] At least two models compared, simple baseline + ML (T4.8.4, T7.5.1)
-- [ ] Accuracy numbers MAE & RMSE (T5.9.3, T7.5.1)
-- [ ] Uncertainty band, calibrated, coverage reported (T4.7.1, T5.9.3)
-- [ ] Dashboard of actual vs predicted generation (T7.4.1)
-- [ ] Simple alerts for expected low/high generation (T5.3.1, T7.7.1)
-- [ ] Public or synthetic generation + weather data for one site (Phases 1–2)
-- [ ] Accuracy comparison with the baseline (T9.3.1)
-- [ ] Dashboard and data assumptions (T7.12.1, T9.2.1)
-- [ ] Architecture diagram (T9.1.1)
-- [ ] Code repository (this repo)
-- [ ] Short report (T9.5.1)
+- [x] Hourly forecast for the next 24–48 h (T6.2.2, T7.3.2)
+- [x] At least two models compared, simple baseline + ML (T4.8.4, T7.5.1)
+- [x] Accuracy numbers MAE & RMSE (T5.9.3, T7.5.1)
+- [x] Uncertainty band, calibrated, coverage reported (T4.7.1, T5.9.3)
+- [x] Dashboard of actual vs predicted generation (T7.4.1)
+- [x] Simple alerts for expected low/high generation (T5.3.1, T7.7.1)
+- [x] Public or synthetic generation + weather data for one site (Phases 1–2)
+- [x] Accuracy comparison with the baseline (T9.3.1)
+- [x] Dashboard and data assumptions (T7.12.1, T9.2.1)
+- [x] Architecture diagram (T9.1.1)
+- [x] Code repository (this repo)
+- [x] Short report (T9.5.1)
 
 ## Differentiators checklist
 
-- [ ] Twin calibrated on real data: Indian plants, turbine SCADA, MP statistics (2.3–2.5)
-- [ ] Benchmarks on real generation data (2.6, 2.7)
-- [ ] Chronos-2 foundation model, zero-shot and LoRA fine-tuned on Kaggle (4.3, 4.4)
-- [ ] Trust score validated against real errors (T5.9.2)
-- [ ] Battery dispatch + value-of-forecast in MWh, ₹, tCO₂ (5.4, 5.5)
-- [ ] Deviation Shield with verified CERC/MPERC rates + 96-block schedule export (5.7, T7.10.1)
-- [ ] What-if simulator (5.6, T7.9.1)
-- [ ] Business case with cited market numbers (T9.4.1)
+- [x] Twin calibrated on real data: Indian plants, turbine SCADA, MP statistics (2.3–2.5)
+- [x] Benchmarks on real generation data (2.6, 2.7)
+- [x] Chronos-2 foundation model, zero-shot and LoRA fine-tuned on Kaggle (4.3, 4.4)
+- [x] Trust score validated against real errors (T5.9.2)
+- [x] Battery dispatch + value-of-forecast in MWh, ₹, tCO₂ (5.4, 5.5)
+- [x] Deviation Shield with verified CERC/MPERC rates + 96-block schedule export (5.7, T7.10.1)
+- [x] What-if simulator (5.6, T7.9.1)
+- [x] Business case with cited market numbers (T9.4.1)
 
 ## Verification items to close ([verify])
 
-- [ ] Previous Runs API accepts start_date/end_date; model & earliest date (T1.1.1)
-- [ ] Site coordinates, elevation, distance to Indore (T0.3.7)
-- [ ] Kaggle R1/R2 file names, columns, units (T2.1.2, T2.1.3, T2.2.1)
-- [ ] Mendeley R3 period, columns, units, licence note (T2.1.4)
-- [ ] CEA monthly MP generation & capacity values (T2.1.5)
-- [ ] Hub list for benchmark B (T2.7.1)
-- [ ] Chronos-2 `fit` signature and checkpoint folder on Kaggle (T4.4.1, T4.4.2)
-- [ ] CERC DSM formula & rates; intra-state MPERC applicability (T5.7.2)
-- [ ] Market-size numbers for the business case (T9.4.1)
+- [x] Previous Runs API accepts start_date/end_date; model & earliest date (T1.1.1)
+- [x] Site coordinates, elevation, distance to Indore (T0.3.7)
+- [x] Kaggle R1/R2 file names, columns, units (T2.1.2, T2.1.3, T2.2.1)
+- [x] Mendeley R3 period, columns, units, licence note (T2.1.4)
+- [x] CEA monthly MP generation & capacity values (T2.1.5)
+- [x] Hub list for benchmark B (T2.7.1)
+- [x] Chronos-2 `fit` signature and checkpoint folder on Kaggle (T4.4.1, T4.4.2)
+- [x] CERC DSM formula & rates; intra-state MPERC applicability (T5.7.2)
+- [x] Market-size numbers for the business case (T9.4.1)
 
 ## Log (newest first)
 
