@@ -79,11 +79,11 @@ alerts:
 weather:
   forecast_model: "ecmwf_ifs025"   # confirm in 1.1; fallback "best_match"
   actual_model: null               # null = Open-Meteo default (best match of IFS/ERA5)
-  start_date: "2024-01-01"
+  start_date: "2024-03-01"
   end_date: "2026-09-30"
 
 splits:
-  train_start: "2024-01-08"
+  train_start: "2024-03-08"
   train_end: "2025-09-30"
   val_start: "2025-10-03"
   val_end: "2026-03-31"

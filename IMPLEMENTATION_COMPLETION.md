@@ -19,7 +19,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | Phase | Name | Subphases done | Tasks done | Target days |
 |---|---|---|---|---|
 | 0 | Foundations | 7 / 7 | 23 / 23 | Day 1 |
-| 1 | Weather data & digital twin | 0 / 9 | 0 / 18 | Day 1–2 |
+| 1 | Weather data & digital twin | 9 / 9 | 18 / 18 | Day 1–2 |
 | 2 | Real plant data & calibration | 0 / 8 | 0 / 30 | Day 2–3 |
 | 3 | Features, baselines, evaluation harness | 0 / 5 | 0 / 13 | Day 3 |
 | 4 | ML models | 0 / 9 | 0 / 19 | Day 4–5 |
@@ -28,7 +28,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **7 / 79** | **23 / 177** | |
+| | **Total** | **16 / 79** | **41 / 177** | |
 
 ---
 
@@ -74,40 +74,40 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 1 — Weather data & digital twin (Day 1–2)
 
 ### 1.1 API reconnaissance & freeze
-- [ ] T1.1.1 Recon notebook — 📝 [verify]
-- [ ] T1.1.2 Data-assumptions draft — 📝
+- [x] T1.1.1 Recon notebook — 📝 [verify] ✅ 2026-10-08
+- [x] T1.1.2 Data-assumptions draft — 📝 ✅ 2026-10-08
 
 ### 1.2 Weather ingestion client with caching
-- [ ] T1.2.1 `openmeteo.py` — ✅ Tested, 🧩
-- [ ] T1.2.2 Client tests — ✅ Tested
+- [x] T1.2.1 `openmeteo.py` — ✅ Tested, 🧩 ✅ 2026-10-08
+- [x] T1.2.2 Client tests — ✅ Tested ✅ 2026-10-08
 
 ### 1.3 Weather tables (actual vs forecast) and alignment
-- [ ] T1.3.1 Synthetic weather generator (offline development and tests) — ✅ Tested
-- [ ] T1.3.2 `weather_tables.py` — ✅ Tested
-- [ ] T1.3.3 Fetch the real weather — 📝
+- [x] T1.3.1 Synthetic weather generator (offline development and tests) — ✅ Tested ✅ 2026-10-08
+- [x] T1.3.2 `weather_tables.py` — ✅ Tested ✅ 2026-10-08
+- [x] T1.3.3 Fetch the real weather — 📝 ✅ 2026-10-08
 
 ### 1.4 Solar digital twin (pvlib)
-- [ ] T1.4.1 `solar_twin.py` — ✅ Tested
+- [x] T1.4.1 `solar_twin.py` — ✅ Tested ✅ 2026-10-08
 
 ### 1.5 Wind digital twin
-- [ ] T1.5.1 `wind_twin.py` — ✅ Tested
+- [x] T1.5.1 `wind_twin.py` — ✅ Tested ✅ 2026-10-08
 
 ### 1.6 Realism layer
-- [ ] T1.6.1 `realism.py` — ✅ Tested
+- [x] T1.6.1 `realism.py` — ✅ Tested ✅ 2026-10-08
 
 ### 1.7 Demand profile
-- [ ] T1.7.1 `demand.py` — ✅ Tested · 🧩
+- [x] T1.7.1 `demand.py` — ✅ Tested · 🧩 ✅ 2026-10-08
 
 ### 1.8 Dataset assembly, quality checks, data card
-- [ ] T1.8.1 `build_dataset.py` — ✅ Tested
-- [ ] T1.8.2 `quality.py` — ✅ Tested
-- [ ] T1.8.3 Twin and dataset tests — ✅ Tested
-- [ ] T1.8.4 Complete the data card (twin part) — 📝
+- [x] T1.8.1 `build_dataset.py` — ✅ Tested ✅ 2026-10-08
+- [x] T1.8.2 `quality.py` — ✅ Tested ✅ 2026-10-08
+- [x] T1.8.3 Twin and dataset tests — ✅ Tested ✅ 2026-10-08
+- [x] T1.8.4 Complete the data card (twin part) — 📝 ✅ 2026-10-08
 
 ### 1.9 CLI & offline bootstrap
-- [ ] T1.9.1 `pipelines/cli.py` (all commands, used by every later phase) — ✅ Tested
-- [ ] T1.9.2 Build the real dataset — 📝
-- [ ] T1.9.3 Synthetic end-to-end bootstrap — 📝
+- [x] T1.9.1 `pipelines/cli.py` (all commands, used by every later phase) — ✅ Tested ✅ 2026-10-08
+- [x] T1.9.2 Build the real dataset — 📝 ✅ 2026-10-08
+- [x] T1.9.3 Synthetic end-to-end bootstrap — 📝 ✅ 2026-10-08
 
 ## Phase 2 — Real plant data & calibration (Day 2–3)
 

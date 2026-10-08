@@ -30,3 +30,10 @@ All ML/energy libraries are Python; OpenAPI → TypeScript types for Next.js.
 - Confirmed site is at Jamgudrani hills ridge east of Dewas town (approx 35-40km from Indore).
 - Confirmed elevation is 536.0m from Open-Meteo.
 
+
+## ADR-004: Weather API facts
+- Previous Runs DOES accept start_date/end_date (returns 200).
+- The model 'ecmwf_ifs025' returns non-null values.
+- The earliest date that includes previous_day2 for wind_speed_100m without missing data is around 2024-03-01.
+- Archive API returns all variables and provides elevation.
+
