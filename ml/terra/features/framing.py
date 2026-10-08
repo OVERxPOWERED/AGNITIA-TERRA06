@@ -1,7 +1,7 @@
 """Turn the hourly dataset into supervised forecast rows (issue_time, target_time, lead_h).
 
 Leakage rules enforced here:
-- weather features come from the lead-appropriate forecast column (fx0/fx1/fx2), never act_*
+- weather features come from lead-appropriate forecast column (fx1_ for 1-24, fx2_ for 25-48), never act_*
 - generation history uses only values at or before issue_time
 - the split is assigned by issue_time and rows whose target crosses a split boundary are dropped
 """
@@ -74,7 +74,7 @@ def frame_source(ds: pd.DataFrame, source: str, cfg: TerraConfig, issues: pd.Dat
     frames = []
     for lead in range(1, horizon_h + 1):
         prefix = next(p for lo, hi, _, p in LEAD_BUCKETS if lo <= lead <= hi)
-        d = prefix[2]                                                   # "0" | "1" | "2"
+        d = prefix[2]                                                   # "1" | "2"
         bucket = next(b for lo, hi, b, _ in LEAD_BUCKETS if lo <= lead <= hi)
         targets = issues + pd.Timedelta(hours=lead)
         part = pd.DataFrame({"issue_time_utc": issues, "target_time_utc": targets,

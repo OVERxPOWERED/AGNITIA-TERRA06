@@ -59,3 +59,36 @@ def recent_error(history: pd.DataFrame, capacity: float, window_h: int = 168) ->
     """Mean |y - q50| / capacity over the last `window_h` hours of a history table (y, q50)."""
     h = history.dropna(subset=["y", "q50"]).tail(window_h)
     return float((h["y"] - h["q50"]).abs().mean() / capacity) if len(h) else 0.05
+
+
+def hybrid_trust_score(
+    q50_solar: np.ndarray | float,
+    q50_wind: np.ndarray | float,
+    trust_solar: np.ndarray | float,
+    trust_wind: np.ndarray | float,
+) -> np.ndarray | float:
+    """Expected-generation-weighted average of solar and wind trust scores.
+
+    trust_h = (w_solar * trust_solar + w_wind * trust_wind) / (w_solar + w_wind)
+    where w_s = q50_s (MW) per hour. When both q50 are ~0 (< 1e-6), falls back to
+    the plain mean (trust_solar + trust_wind) / 2. Output is clipped to [0, 100]
+    and rounded to 0 decimals.
+    """
+    qs = np.asarray(q50_solar, dtype=float)
+    qw = np.asarray(q50_wind, dtype=float)
+    ts = np.asarray(trust_solar, dtype=float)
+    tw = np.asarray(trust_wind, dtype=float)
+
+    total_q = qs + qw
+    is_scalar = total_q.ndim == 0
+
+    plain_mean = (ts + tw) / 2.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        denom = np.where(total_q < 1e-6, 1.0, total_q)
+        weighted = (qs * ts + qw * tw) / denom
+
+    score = np.where(total_q < 1e-6, plain_mean, weighted)
+    score = np.clip(score, 0.0, 100.0).round(0)
+
+    return float(score) if is_scalar else score
+

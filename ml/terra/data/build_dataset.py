@@ -2,7 +2,7 @@
 
 Columns written (see .agent/context/data-contracts.md):
   act_*                     actual weather (analysis only, NEVER a feature)
-  fx0_*, fx1_*, fx2_*       forecast weather at previous_day0/1/2
+  fx0_*, fx1_*, fx2_*       forecast weather at previous_day0/1/2 (fx0 for hist residuals, fx1/fx2 for framed leads)
   solar_mw, wind_mw         targets (twin on actual weather + realism layer)
   twin_solar_mw, twin_wind_mw  clean twin output before realism (diagnostics only)
   phys{0,1,2}_solar_mw, phys{0,1,2}_wind_mw  physics model on fx{0,1,2} weather

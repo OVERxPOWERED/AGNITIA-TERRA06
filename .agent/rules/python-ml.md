@@ -22,7 +22,7 @@ description: Python, data and ML coding standards for the ml/terra package.
 ## Modelling
 - All models subclass `terra.models.base.ForecastModel` (`fit(X, y, X_val, y_val)`, `predict(X)` → DataFrame `q05,q10,q50,q90,q95`, `save`, `load`).
 - Quantiles must be monotone and clipped to `[0, capacity]`; solar is 0 when sun elevation < 0.
-- Evaluate only via `terra.eval.backtest`; slices: lead bucket (1–12, 13–36, 37–48), hour, month, daylight.
+- Evaluate only via `terra.eval.backtest`; slices: lead bucket (1–24, 25–48), hour, month, daylight.
 - Seed everything (`numpy`, `lightgbm`, `torch`); record seeds in `meta.json`.
 - Every artifact gets `meta.json`: model name/version, config hash, git SHA, data span, features, metrics, train time, library versions.
 - Never touch the test split during tuning/ensemble weighting/conformal fitting (those use validation).

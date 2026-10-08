@@ -29,7 +29,7 @@ from terra.engines.alerts import generate_alerts
 from terra.engines.dispatch import no_battery, plan, rule_based
 from terra.engines.dsm import schedule_at_level
 from terra.engines.hybrid import hybrid_forecast
-from terra.engines.trust import level, trust_features
+from terra.engines.trust import hybrid_trust_score, level, trust_features
 from terra.features.framing import frame_source
 from terra.logs import get_logger
 from terra.models.downscale import downscale_solar, downscale_wind
@@ -68,6 +68,7 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None) 
     ds, t0 = live_dataset(cfg) if mode == "live" else replay_dataset(cfg, at)
     issues = pd.DatetimeIndex([t0])
     eng = load_object("hybrid", "engines@latest")
+    alert_thrs = eng.get("alert_thresholds") if isinstance(eng, dict) else None
     out = RUNS / t0.strftime("%Y%m%dT%H")
     out.mkdir(parents=True, exist_ok=True)
 
@@ -101,21 +102,28 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None) 
         per_source[s] = df
         rows.to_parquet(out / f"rows_{s}.parquet")
         fc = df.set_index("target_time_utc")
-        all_alerts += generate_alerts(fc, s, cap, cfg.alerts, t0, trust=fc["trust_score"])
+        th_s = alert_thrs.get(s) if alert_thrs else None
+        all_alerts += generate_alerts(fc, s, cap, cfg.alerts, t0, trust=fc["trust_score"], thresholds=th_s)
 
     sol, win = per_source["solar"], per_source["wind"]
     hyb_q = hybrid_forecast(sol[list(QCOLS)], win[list(QCOLS)], sol["cal_is_day"].to_numpy(),
                             eng["rho_by_day"], cfg.capacity_mw("solar"), cfg.capacity_mw("wind"))
     hyb = sol[["target_time_utc", "lead_h", "cal_is_day"]].copy()
     hyb[list(QCOLS)] = hyb_q.to_numpy()
-    hyb["trust_score"] = np.minimum(sol["trust_score"].to_numpy(), win["trust_score"].to_numpy())
+    hyb["trust_score"] = hybrid_trust_score(
+        sol["q50"].to_numpy(),
+        win["q50"].to_numpy(),
+        sol["trust_score"].to_numpy(),
+        win["trust_score"].to_numpy(),
+    )
     hyb["trust_level"] = [level(x) for x in hyb["trust_score"]]
     hyb["trust_reason"] = np.where(sol["trust_score"] <= win["trust_score"], sol["trust_reason"], win["trust_reason"])
     hyb["source"] = "hybrid"
     demand = ds["demand_mw"].reindex(hyb["target_time_utc"])
     fc = hyb.set_index("target_time_utc")
+    th_hyb = alert_thrs.get("hybrid") if alert_thrs else None
     all_alerts += generate_alerts(fc, "hybrid", cfg.capacity_mw("hybrid"), cfg.alerts, t0,
-                                  demand=pd.Series(demand.to_numpy(), index=fc.index))
+                                  demand=pd.Series(demand.to_numpy(), index=fc.index), thresholds=th_hyb)
     forecast = pd.concat([sol, win, hyb], ignore_index=True)
     forecast.to_parquet(out / "forecast.parquet")
 

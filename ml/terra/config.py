@@ -118,11 +118,20 @@ class CostsCfg(BaseModel):
 
 
 class AlertsCfg(BaseModel):
+    low_quantile: float | dict[str, float] = 0.10
+    high_quantile: float = 0.90
+    ramp_quantile: float = 0.95
+    quantile_basis: str = "train"
     low_generation_frac: float = 0.10
     high_generation_frac: float = 0.85
     ramp_mw_per_h: float = 20.0
     low_trust_score: float = 40
     min_probability: float = 0.6
+
+    def get_low_quantile(self, source: str) -> float:
+        if isinstance(self.low_quantile, dict):
+            return float(self.low_quantile.get(source, 0.10))
+        return float(self.low_quantile)
 
 
 class WeatherCfg(BaseModel):

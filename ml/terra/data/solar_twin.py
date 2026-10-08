@@ -2,7 +2,7 @@
 
 Used three ways:
 1. actual weather  -> "true" plant output (before realism layer)          prefix="act_"
-2. forecast weather -> physics forecast M1 and the phys_ feature          prefix="fx0_"/"fx1_"/"fx2_"/"fx_"
+2. forecast weather -> physics forecast M1 and the phys_ feature          prefix="fx1_"/"fx2_"/"fx_"
 3. what-if scenarios (modified weather / capacity)
 """
 from __future__ import annotations

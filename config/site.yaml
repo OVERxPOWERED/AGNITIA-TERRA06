@@ -70,9 +70,13 @@ costs:
   emission_factor_source: "CEA CO2 Baseline Database v22.0 (combined margin, FY2025-26)"
 
 alerts:
-  low_generation_frac: 0.10    # combined output below 10% of total capacity
-  high_generation_frac: 0.85   # above 85% → curtailment risk
-  ramp_mw_per_h: 20.0
+  low_quantile: {solar: 0.10, wind: 0.25, hybrid: 0.10}  # wind training P10 ~ 0.09 MW (calm = essentially zero); P25 (~1.14 MW) justified from training distribution
+  high_quantile: 0.90          # data-driven quantile threshold on training split
+  ramp_quantile: 0.95          # data-driven quantile threshold on training split
+  quantile_basis: "train"      # basis split for learned thresholds
+  low_generation_frac: 0.10    # fallback: combined output below 10% of total capacity
+  high_generation_frac: 0.85   # fallback: above 85% -> curtailment risk
+  ramp_mw_per_h: 20.0          # fallback: fixed ramp threshold
   low_trust_score: 40
   min_probability: 0.60
 

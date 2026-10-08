@@ -15,7 +15,7 @@ from scipy.stats import spearmanr
 
 from terra.config import TerraConfig
 from terra.data.build_dataset import load_dataset
-from terra.engines.alerts import alert_skill, generate_alerts
+from terra.engines.alerts import alert_thresholds, evaluate_alert_quality
 from terra.engines.dsm import DsmProfile, choose_level, deviation_charges, schedule_at_level
 from terra.engines.hybrid import complementarity, fit_copula_rho, pit
 from terra.engines.impact import impact_summary
@@ -98,18 +98,21 @@ def evaluate_all(cfg: TerraConfig) -> dict:
                                  "weights": tm.weights.round(4).tolist()}
         trust_models[s] = tm
 
-    # ---- alerts skill (hybrid, issue 00 UTC, leads 1-24) ---------------------------------------
-    cap_h = cfg.capacity_mw("hybrid")
-    hyb_day = hyb_test[(hyb_test["issue_time_utc"].dt.hour == 0) & (hyb_test["lead_h"] <= 24)]
-    all_alerts = []
-    for it, g in hyb_day.groupby("issue_time_utc"):
-        fc = g.set_index("target_time_utc")[list(QCOLS) + ["cal_is_day"]]
-        all_alerts += generate_alerts(fc, "hybrid", cap_h, cfg.alerts, it)
-    actual_h = hyb_day.set_index("target_time_utc")["y"]
+    # ---- alert quality & thresholds (solar, wind, hybrid; daily 00 UTC, 48 h horizon) ------
+    thrs = alert_thresholds(ds, cfg)
+    sources_test = {
+        "solar": preds["solar"][preds["solar"]["split"] == "test"],
+        "wind": preds["wind"][preds["wind"]["split"] == "test"],
+        "hybrid": hyb_test,
+    }
+    alerts_eval = evaluate_alert_quality(sources_test, cfg, thrs)
     results["alerts"] = {
-        "n_alerts": len(all_alerts),
-        "low": alert_skill(all_alerts, actual_h, "LOW_GENERATION", cfg.alerts.low_generation_frac * cap_h),
-        "high": alert_skill(all_alerts, actual_h, "HIGH_GENERATION", cfg.alerts.high_generation_frac * cap_h),
+        "thresholds": thrs,
+        "solar": alerts_eval["solar"],
+        "wind": alerts_eval["wind"],
+        "hybrid": alerts_eval["hybrid"],
+        "low": alerts_eval["hybrid"]["low"],
+        "high": alerts_eval["hybrid"]["high"],
     }
 
     # ---- value of forecast (H2) --------------------------------------------------------------
@@ -161,8 +164,8 @@ def evaluate_all(cfg: TerraConfig) -> dict:
     days = hyb_by_model["ensemble"]["issue_time_utc"].nunique()
     results["impact"] = impact_summary(vof, cfg, dsm, days=days)
 
-    save_object({"rho_by_day": rho, "trust": trust_models, "dsm_level": levels}, "hybrid", "engines",
-                {"config_hash": cfg.hash(), "results": results})
+    save_object({"rho_by_day": rho, "trust": trust_models, "dsm_level": levels, "alert_thresholds": thrs},
+                "hybrid", "engines", {"config_hash": cfg.hash(), "results": results})
     (out_dir / "results.json").write_text(json.dumps(results, indent=2, default=str))
     write_engine_doc(results)
     log.info("evaluation done: %s", json.dumps(results["impact"], default=str))
@@ -181,7 +184,30 @@ def write_engine_doc(r: dict) -> None:
     lines += ["", "## Value of forecast (day-ahead plans settled on actual)", "",
               pd.DataFrame(r["value_of_forecast"]).to_markdown(index=False), "",
               "## Deviation Shield" + (" (ILLUSTRATIVE rates)" if r["dsm"]["illustrative_rates"] else ""), "",
-              pd.DataFrame(r["dsm"]["table"]).to_markdown(index=False), "", "## Impact", "",
+              pd.DataFrame(r["dsm"]["table"]).to_markdown(index=False), "",
+              "## Alert quality (test split)", "",
+              "Data-driven thresholds derived from training split quantiles (P10 low generation, P90 high generation, "
+              "P95 hourly ramp; solar daylight-only for generation thresholds). Deduplicated across daily 00:00 UTC "
+              "issue times (48 h horizon).", ""]
+    alert_rows = []
+    thrs = r.get("alerts", {}).get("thresholds", {})
+    for s in ("solar", "wind", "hybrid"):
+        s_thrs = thrs.get(s, {})
+        s_res = r.get("alerts", {}).get(s, {})
+        for kind, kind_label in (("low", "LOW"), ("high", "HIGH")):
+            k_res = s_res.get(kind, {})
+            thr_mw = s_thrs.get(f"{kind}_mw", float("nan"))
+            alert_rows.append({
+                "source": s,
+                "alert": kind_label,
+                "threshold_mw": round(thr_mw, 2),
+                "precision": round(k_res.get("precision", 0.0), 3),
+                "recall": round(k_res.get("recall", 0.0), 3),
+                "alert_hours": k_res.get("alert_hours", 0),
+                "event_hours": k_res.get("event_hours", 0),
+            })
+    lines += [pd.DataFrame(alert_rows).to_markdown(index=False), "",
+              "## Impact", "",
               "```json", json.dumps(r["impact"], indent=2), "```"]
     DOCS.mkdir(parents=True, exist_ok=True)
     (DOCS / "engine-results.md").write_text("\n".join(lines))

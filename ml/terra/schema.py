@@ -31,7 +31,7 @@ EXTRA_FEATURES = ("lead_h",)
 TARGETS = {"solar": "solar_mw", "wind": "wind_mw"}
 QUANTILES = (0.05, 0.10, 0.50, 0.90, 0.95)
 QCOLS = ("q05", "q10", "q50", "q90", "q95")
-LEAD_BUCKETS = ((1, 12, "1-12", "fx0_"), (13, 36, "13-36", "fx1_"), (37, 48, "37-48", "fx2_"))
+LEAD_BUCKETS = ((1, 24, "1-24", "fx1_"), (25, 48, "25-48", "fx2_"))
 
 
 def lead_bucket(lead_h: int) -> str:

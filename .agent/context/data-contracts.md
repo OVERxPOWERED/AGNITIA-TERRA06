@@ -23,9 +23,9 @@ Derived: `rho` (kg/m³ air density), `wd100_sin`, `wd100_cos`, `csi` (clear-sky 
 | Prefix | Meaning | Allowed as feature? |
 |---|---|---|
 | `act_` | actual weather (Archive/reanalysis) | **No** — drives the twin only |
-| `fx0_` | forecast, `_previous_day0` | Yes (lead 1–12 h) |
-| `fx1_` | forecast, `_previous_day1` (24 h ahead) | Yes (lead 13–36 h) |
-| `fx2_` | forecast, `_previous_day2` (48 h ahead) | Yes (lead 37–48 h) |
+| `fx0_` | forecast, `_previous_day0` | **No** (stay in dataset for past `phys0_` residuals; not used as lead feature) |
+| `fx1_` | forecast, `_previous_day1` (24 h ahead) | Yes (lead 1–24 h) |
+| `fx2_` | forecast, `_previous_day2` (48 h ahead) | Yes (lead 25–48 h) |
 | `fx_` | lead-resolved forecast after framing | Yes |
 | `phys_` | physics model output on forecast weather | Yes |
 | `hist_` | generation history ≤ issue time | Yes |
@@ -42,7 +42,7 @@ Derived: `rho` (kg/m³ air density), `wd100_sin`, `wd100_cos`, `csi` (clear-sky 
 | `gap_flag` | bool | weather gap > 3 h |
 
 ## Framed training table (`data/processed/framed_<source>.parquet`)
-Columns: `issue_time_utc`, `target_time_utc`, `lead_h` (1–48), `lead_bucket` (`1-12|13-36|37-48`), features (`fx_*`, `phys_*`, `hist_*`, `cal_*`), `y` (MW), `split` (`train|val|test`).
+Columns: `issue_time_utc`, `target_time_utc`, `lead_h` (1–48), `lead_bucket` (`1-24|25-48`), features (`fx_*`, `phys_*`, `hist_*`, `cal_*`), `y` (MW), `split` (`train|val|test`).
 
 ## Forecast output (long format, `predictions.parquet` and API)
 | Column | Type |
