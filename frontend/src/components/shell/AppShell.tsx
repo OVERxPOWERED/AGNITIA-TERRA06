@@ -40,6 +40,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {health.data?.mode === "live" && health.data.latest_issue_time_utc &&
+              // eslint-disable-next-line react-hooks/purity
               Date.now() - new Date(health.data.latest_issue_time_utc).getTime() > 3 * 3600_000 && (
                 <Badge tone="warn">Data stale since {toIST(health.data.latest_issue_time_utc)}</Badge>
             )}
