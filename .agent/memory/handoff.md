@@ -1,1 +1,1 @@
-Phase 7 complete. Next: Phase 8 Integration.
+Phase 8 complete (except Deployment, on hold). Next: Phase 9 Docs & Demo.

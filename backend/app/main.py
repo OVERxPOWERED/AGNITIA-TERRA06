@@ -17,6 +17,11 @@ from app.settings import get_settings
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     engine()                                   # create SQLite tables
+    from app.services import runs
+    try:
+        runs.latest()                          # warm caches
+    except NoRunYet:
+        pass
     app.state.subscribers = set()
     attach_loop(app)
     job = ForecastJob(app)

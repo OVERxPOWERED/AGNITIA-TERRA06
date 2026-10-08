@@ -38,7 +38,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="text-sm text-muted">
             {health.data?.latest_issue_time_utc ? <>Forecast issued {toIST(health.data.latest_issue_time_utc)}</> : "Waiting for first forecast…"}
           </div>
-          {mode && <Badge tone={mode === "LIVE" ? "good" : "hybrid"} aria-label={`mode ${mode}`}>● {mode}</Badge>}
+          <div className="flex flex-wrap items-center gap-2">
+            {health.data?.mode === "live" && health.data.latest_issue_time_utc &&
+              Date.now() - new Date(health.data.latest_issue_time_utc).getTime() > 3 * 3600_000 && (
+                <Badge tone="warn">Data stale since {toIST(health.data.latest_issue_time_utc)}</Badge>
+            )}
+            {mode && <Badge tone={mode === "LIVE" ? "good" : "hybrid"} aria-label={`mode ${mode}`}>● {mode}</Badge>}
+          </div>
         </header>
         <main className="flex-1 px-4 py-5 md:px-6">{children}</main>
         <footer className="border-t border-border px-4 py-3 text-xs text-muted md:px-6">

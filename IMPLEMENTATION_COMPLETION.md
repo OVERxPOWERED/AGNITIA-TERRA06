@@ -26,9 +26,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 5 | Engines: hero features, revenue & impact | 9 / 9 | 12 / 12 | Day 5–7 |
 | 6 | Backend API | 6 / 6 | 17 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 13 / 13 | 22 / 22 | Day 4–9 |
-| 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
+| 8 | Integration | 4 / 5 | 10 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **66 / 79** | **154 / 177** | |
+| | **Total** | **70 / 79** | **164 / 177** | |
 
 ---
 
@@ -338,22 +338,22 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 8 — Integration (Day 8–9)
 
 ### 8.1 End-to-end integration
-- [ ] T8.1.1 Fresh-clone run — 📝
-- [ ] T8.1.2 Contract check — 📝
+- [x] T8.1.1 Fresh-clone run — 📝 ✅ 2026-10-08
+- [x] T8.1.2 Contract check — 📝 ✅ 2026-10-08
 
 ### 8.2 Containerization (local only)
-- [ ] T8.2.1 Backend Dockerfile — 🧩 Spec code
-- [ ] T8.2.2 Frontend Dockerfile — 🧩 Spec code
-- [ ] T8.2.3 docker-compose — 🧩 Spec code
-- [ ] T8.2.4 Run with Docker — 📝
+- [x] T8.2.1 Backend Dockerfile — 🧩 Spec code ✅ 2026-10-08
+- [x] T8.2.2 Frontend Dockerfile — 🧩 Spec code ✅ 2026-10-08
+- [x] T8.2.3 docker-compose — 🧩 Spec code ✅ 2026-10-08
+- [x] T8.2.4 Run with Docker — 📝 ✅ 2026-10-08
 
 ### 8.3 Resilience
-- [ ] T8.3.1 Failure keeps the last good run — 📝
-- [ ] T8.3.2 Stale-data banner — 🧩 SNIPPET
+- [x] T8.3.1 Failure keeps the last good run — 📝 ✅ 2026-10-08
+- [x] T8.3.2 Stale-data banner — 🧩 SNIPPET ✅ 2026-10-08
 
 ### 8.4 Performance
-- [ ] T8.4.1 Measure — 📝
-- [ ] T8.4.2 Warm caches at startup — 📝
+- [x] T8.4.1 Measure — 📝 ✅ 2026-10-08
+- [x] T8.4.2 Warm caches at startup — 📝 ✅ 2026-10-08
 
 ### 8.5 Deployment — ON HOLD until the user says "deploy"
 - [ ] T8.5.1 (on hold) Choose hosts — 📝
