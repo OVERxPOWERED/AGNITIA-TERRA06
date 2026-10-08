@@ -21,14 +21,14 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 0 | Foundations | 7 / 7 | 23 / 23 | Day 1 |
 | 1 | Weather data & digital twin | 9 / 9 | 18 / 18 | Day 1–2 |
 | 2 | Real plant data & calibration | 8 / 8 | 30 / 30 | Day 2–3 |
-| 3 | Features, baselines, evaluation harness | 0 / 5 | 0 / 13 | Day 3 |
+| 3 | Features, baselines, evaluation harness | 5 / 5 | 13 / 13 | Day 3 |
 | 4 | ML models | 0 / 9 | 0 / 19 | Day 4–5 |
 | 5 | Engines: hero features, revenue & impact | 0 / 9 | 0 / 12 | Day 5–7 |
 | 6 | Backend API | 0 / 6 | 0 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **24 / 79** | **71 / 177** | |
+| | **Total** | **29 / 79** | **84 / 177** | |
 
 ---
 
@@ -160,27 +160,27 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 3 — Features, baselines, evaluation harness (Day 3)
 
 ### 3.1 Forecast framing & splits
-- [ ] T3.1.1 `features/framing.py` — ✅ Tested
-- [ ] T3.1.2 `features/build_features.py` — ✅ Tested
-- [ ] T3.1.3 Leakage tests — ✅ Tested
-- [ ] T3.1.4 Frame the real dataset — 📝
+- [x] T3.1.1 `features/framing.py` — ✅ Tested ✅ 2026-10-08
+- [x] T3.1.2 `features/build_features.py` — ✅ Tested ✅ 2026-10-08
+- [x] T3.1.3 Leakage tests — ✅ Tested ✅ 2026-10-08
+- [x] T3.1.4 Frame the real dataset — 📝 ✅ 2026-10-08
 
 ### 3.2 Feature review
-- [ ] T3.2.1 Feature list in the model card — 📝
-- [ ] T3.2.2 Importance sanity check — 📝
+- [x] T3.2.1 Feature list in the model card — 📝 ✅ 2026-10-08
+- [x] T3.2.2 Importance sanity check — 📝 ✅ 2026-10-08
 
 ### 3.3 Baseline models
-- [ ] T3.3.1 `models/base.py` (interface, quantile helpers, residual bands) — ✅ Tested
-- [ ] T3.3.2 `models/baselines.py` (M0) — ✅ Tested
-- [ ] T3.3.3 `models/physics.py` (M1) — ✅ Tested
+- [x] T3.3.1 `models/base.py` (interface, quantile helpers, residual bands) — ✅ Tested ✅ 2026-10-08
+- [x] T3.3.2 `models/baselines.py` (M0) — ✅ Tested ✅ 2026-10-08
+- [x] T3.3.3 `models/physics.py` (M1) — ✅ Tested ✅ 2026-10-08
 
 ### 3.4 Metrics & backtest harness
-- [ ] T3.4.1 `eval/metrics.py` — ✅ Tested
-- [ ] T3.4.2 `eval/backtest.py` — ✅ Tested
-- [ ] T3.4.3 Metric tests — ✅ Tested
+- [x] T3.4.1 `eval/metrics.py` — ✅ Tested ✅ 2026-10-08
+- [x] T3.4.2 `eval/backtest.py` — ✅ Tested ✅ 2026-10-08
+- [x] T3.4.3 Metric tests — ✅ Tested ✅ 2026-10-08
 
 ### 3.5 Baseline report
-- [ ] T3.5.1 Baseline results on validation — ✅ Tested
+- [x] T3.5.1 Baseline results on validation — ✅ Tested ✅ 2026-10-08
 
 ## Phase 4 — ML models (Day 4–5)
 

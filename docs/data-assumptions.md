@@ -42,4 +42,14 @@ Contracted peak: 30.0 MW. Temp coefficient +1%/degC over 25C. Base shape: parame
 Real data from multiple Indian solar/wind sources and MP official statistics were used to accurately calibrate our models and physics-based twins. This guarantees our dataset matches reality closely.
 
 ## What is real vs simulated
-Generation is simulated by a digital twin at a real location driven by real weather; it is not measured data from any operator.
+
+| Item | Real or simulated | Source / method |
+|---|---|---|
+| Weather inputs (actual and forecast) | Real | Open-Meteo Archive + Previous Runs, model `ecmwf_ifs025`, CC BY 4.0 |
+| Solar & wind generation at the Dewas site | Simulated (digital twin) | pvlib + windpowerlib + realism layer |
+| Twin temperature coefficient, noise, outages | Calibrated on real data | R1 (Kaggle Indian plants), R2 (turbine SCADA) |
+| Twin seasonal capacity factor | Checked against real statistics | R4 CEA monthly MP |
+| Demand shape | Real shape, scaled | R3 all-India hourly demand |
+| Real-generation benchmark | Real | R1 (plant), R3 (all-India) |
+| Deviation charge rates | Illustrative until verified | config/dsm.yaml |
+
