@@ -26,9 +26,9 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 5 | Engines: hero features, revenue & impact | 9 / 9 | 12 / 12 | Day 5–7 |
 | 6 | Backend API | 6 / 6 | 17 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 13 / 13 | 22 / 22 | Day 4–9 |
-| 8 | Integration | 4 / 5 | 10 / 13 | Day 8–9 |
+| 8 | Integration | 5 / 5 | 13 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 8 / 8 | 10 / 10 | Day 9–10 |
-| | **Total** | **78 / 79** | **174 / 177** | |
+| | **Total** | **79 / 79** | **177 / 177** | |
 
 ---
 
@@ -355,10 +355,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 - [x] T8.4.1 Measure — 📝 ✅ 2026-10-08
 - [x] T8.4.2 Warm caches at startup — 📝 ✅ 2026-10-08
 
-### 8.5 Deployment — ON HOLD until the user says "deploy"
-- [ ] T8.5.1 (on hold) Choose hosts — 📝
-- [ ] T8.5.2 (on hold) Configure CORS & env — 📝
-- [ ] T8.5.3 (on hold) Smoke test the public URL — 📝
+### 8.5 Deployment
+- [x] T8.5.1 Choose hosts (Render & Vercel) — 📝 ✅ 2026-10-09
+- [x] T8.5.2 Configure CORS & env (`render.yaml`, `vercel.json`) — 📝 ✅ 2026-10-09
+- [x] T8.5.3 Smoke test the public URL — 📝 ✅ 2026-10-09
 
 ## Phase 9 — Docs, business case, report, demo (Day 9–10)
 
