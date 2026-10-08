@@ -36,6 +36,21 @@ def build_dataset(cfg: TerraConfig, actual: pd.DataFrame, forecast: pd.DataFrame
 
     twin_solar = simulate_solar(actual, cfg.site, cfg.solar, "act_", sp)
     twin_wind = simulate_wind(actual, cfg.wind, "act_")
+
+    # monthly scaling to Madhya Pradesh official capacity factors (task T2.5.3)
+    from terra.config import load_yaml
+    try:
+        scales = load_yaml("calibration/state.yaml").get("monthly_scale", {})
+    except FileNotFoundError:
+        scales = {}
+    months = idx.tz_convert("Asia/Kolkata").month
+    if scales.get("solar"):
+        f = pd.Series(months).map(scales["solar"]).fillna(1.0).to_numpy()
+        twin_solar = (twin_solar * f).clip(upper=cfg.solar.ac_capacity_mw)
+    if scales.get("wind"):
+        f = pd.Series(months).map(scales["wind"]).fillna(1.0).to_numpy()
+        twin_wind = (twin_wind * f).clip(upper=cfg.wind.capacity_mw)
+
     solar_mw, s_flags = apply_solar_realism(twin_solar, actual["act_precip"], cfg.solar.ac_capacity_mw,
                                             cfg.realism.solar, rng)
     wind_mw, w_flags = apply_wind_realism(twin_wind, cfg.wind.capacity_mw, cfg.realism.wind, rng)

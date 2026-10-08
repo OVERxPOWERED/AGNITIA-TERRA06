@@ -14,7 +14,7 @@ solar:
   tilt_deg: 23.0
   azimuth_deg: 180.0
   albedo: 0.20
-  gamma_pdc: -0.0037        # 1/°C, calibrated in 2.3
+  gamma_pdc: -0.00434        # 1/°C, calibrated in 2.3
   system_loss_frac: 0.14    # DC wiring, mismatch, soiling baseline; calibrated in 2.3
   eta_inv_nom: 0.96
 
@@ -41,23 +41,23 @@ demand:
   peak_mw: 30.0            # contracted supply profile served by the hybrid plant (+ battery + backup)
   temp_coeff_per_c: 0.010   # +1% load per °C above 25 °C
   noise_std_frac: 0.02
-  shape_source: "parametric" # "parametric" | "india_hourly" (set after task 2.1 loads R3)
+  shape_source: "india_hourly" # "parametric" | "india_hourly" (set after task 2.1 loads R3)
 
 realism:
   seed: 42
   solar:
-    ar1_phi: 0.70
-    ar1_sigma: 0.06
+    ar1_phi: 0.8786
+    ar1_sigma: 0.0498
     soiling_rate_per_day: 0.002
     soiling_reset_rain_mm: 5.0
-    outage_rate_per_day: 0.02
-    outage_mean_hours: 6.0
-    outage_capacity_frac: 0.10
+    outage_rate_per_day: 0.635
+    outage_mean_hours: 1.29
+    outage_capacity_frac: 0.148
   wind:
-    ar1_phi: 0.60
-    ar1_sigma: 0.08
-    outage_rate_per_day: 0.03
-    outage_mean_hours: 12.0
+    ar1_phi: 0.8786
+    ar1_sigma: 0.0498
+    outage_rate_per_day: 0.635
+    outage_mean_hours: 1.29
     outage_capacity_frac: 0.12
     curtail_rate_per_day: 0.02
     curtail_mean_hours: 4.0

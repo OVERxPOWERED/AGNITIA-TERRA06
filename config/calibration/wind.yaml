@@ -1,0 +1,8 @@
+source: Kaggle wind turbine SCADA (Turkey, 2018, 10-min)
+rated_kw: 3600.0
+recommended:
+  ar1_phi: 0.8786449475240157
+  ar1_sigma: 0.04979032499864424
+  outage_rate_per_day: 0.6346153846153846
+  outage_mean_hours: 1.29004329004329
+  curtail_fraction_of_time_above_13ms: 0.0026716801899861467

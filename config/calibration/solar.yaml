@@ -1,0 +1,29 @@
+source: Kaggle Solar Power Generation Data (2 Indian plants, 34 days)
+per_plant:
+  plant_1:
+    k_mw_per_kwm2: 31.57858961719524
+    gamma_pdc: -0.0035260186450952586
+    ac_cap_mw: 27.06471998472
+    fit_nmae_pct: 1.6983346257761447
+    ar1_phi: 0.32404651464630846
+    ar1_sigma: 0.04762629267498885
+    outage_rate_per_day: 0.1812688821752266
+    outage_mean_hours: 1.8
+    outage_capacity_frac: 0.03787878787878788
+  plant_2:
+    k_mw_per_kwm2: 30.89390982594627
+    gamma_pdc: -0.005154741519331247
+    ac_cap_mw: 19.45254386369048
+    fit_nmae_pct: 5.5604052359320155
+    ar1_phi: 0.482984301865393
+    ar1_sigma: 0.11711473737246428
+    outage_rate_per_day: 1.168141592920354
+    outage_mean_hours: 5.484848484848484
+    outage_capacity_frac: 0.2587965288241531
+recommended:
+  gamma_pdc: -0.004340380082213253
+  ar1_phi: 0.40351540825585075
+  ar1_sigma: 0.08237051502372657
+  outage_rate_per_day: 0.6747052375477903
+  outage_mean_hours: 3.642424242424242
+  outage_capacity_frac: 0.1483376583514705

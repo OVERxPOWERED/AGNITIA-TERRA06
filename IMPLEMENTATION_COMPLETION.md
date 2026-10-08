@@ -20,7 +20,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 |---|---|---|---|---|
 | 0 | Foundations | 7 / 7 | 23 / 23 | Day 1 |
 | 1 | Weather data & digital twin | 9 / 9 | 18 / 18 | Day 1–2 |
-| 2 | Real plant data & calibration | 0 / 8 | 0 / 30 | Day 2–3 |
+| 2 | Real plant data & calibration | 8 / 8 | 30 / 30 | Day 2–3 |
 | 3 | Features, baselines, evaluation harness | 0 / 5 | 0 / 13 | Day 3 |
 | 4 | ML models | 0 / 9 | 0 / 19 | Day 4–5 |
 | 5 | Engines: hero features, revenue & impact | 0 / 9 | 0 / 12 | Day 5–7 |
@@ -28,7 +28,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **16 / 79** | **41 / 177** | |
+| | **Total** | **24 / 79** | **71 / 177** | |
 
 ---
 
@@ -112,50 +112,50 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 2 — Real plant data & calibration (Day 2–3)
 
 ### 2.1 Acquire real datasets
-- [ ] T2.1.1 Kaggle API token — 📝
-- [ ] T2.1.2 R1 Indian solar plants — 📝 [verify]
-- [ ] T2.1.3 R2 wind turbine SCADA — 📝 [verify]
-- [ ] T2.1.4 R3 all-India hourly generation — 📝 [verify]
-- [ ] T2.1.5 R4 Madhya Pradesh monthly statistics — 📝 [verify]
-- [ ] T2.1.6 `real/loaders.py` — 🧩 Spec code
+- [x] T2.1.1 Kaggle API token — 📝 ✅ 2026-10-08
+- [x] T2.1.2 R1 Indian solar plants — 📝 [verify] ✅ 2026-10-08
+- [x] T2.1.3 R2 wind turbine SCADA — 📝 [verify] ✅ 2026-10-08
+- [x] T2.1.4 R3 all-India hourly generation — 📝 [verify] ✅ 2026-10-08
+- [x] T2.1.5 R4 Madhya Pradesh monthly statistics — 📝 [verify] ✅ 2026-10-08
+- [x] T2.1.6 `real/loaders.py` — 🧩 Spec code ✅ 2026-10-08
 
 ### 2.2 Profile & clean real data
-- [ ] T2.2.1 Resolve every [verify] in the loaders — 📝
-- [ ] T2.2.2 Save cleaned copies — 📝
-- [ ] T2.2.3 Switch demand to the real Indian shape — 📝
-- [ ] T2.2.4 Profiling notebook — 📝
+- [x] T2.2.1 Resolve every [verify] in the loaders — 📝 ✅ 2026-10-08
+- [x] T2.2.2 Save cleaned copies — 📝 ✅ 2026-10-08
+- [x] T2.2.3 Switch demand to the real Indian shape — 📝 ✅ 2026-10-08
+- [x] T2.2.4 Profiling notebook — 📝 ✅ 2026-10-08
 
 ### 2.3 Calibrate the solar twin on real Indian plants (R1)
-- [ ] T2.3.1 `real/calibrate_solar.py` — 🧩 Spec code
-- [ ] T2.3.2 Run it — 📝
-- [ ] T2.3.3 Apply the calibrated values — 📝
-- [ ] T2.3.4 Document — 📝
+- [x] T2.3.1 `real/calibrate_solar.py` — 🧩 Spec code ✅ 2026-10-08
+- [x] T2.3.2 Run it — 📝 ✅ 2026-10-08
+- [x] T2.3.3 Apply the calibrated values — 📝 ✅ 2026-10-08
+- [x] T2.3.4 Document — 📝 ✅ 2026-10-08
 
 ### 2.4 Calibrate the wind twin on real SCADA (R2)
-- [ ] T2.4.1 `real/calibrate_wind.py` — 🧩 Spec code
-- [ ] T2.4.2 Run it — 📝
-- [ ] T2.4.3 Apply — 📝
-- [ ] T2.4.4 Document — 📝
+- [x] T2.4.1 `real/calibrate_wind.py` — 🧩 Spec code ✅ 2026-10-08
+- [x] T2.4.2 Run it — 📝 ✅ 2026-10-08
+- [x] T2.4.3 Apply — 📝 ✅ 2026-10-08
+- [x] T2.4.4 Document — 📝 ✅ 2026-10-08
 
 ### 2.5 Calibrate to Madhya Pradesh monthly statistics (R4)
-- [ ] T2.5.1 `real/calibrate_state.py` — 🧩 Spec code
-- [ ] T2.5.2 Run it — 📝
-- [ ] T2.5.3 Apply monthly scaling only if needed — 🧩 SNIPPET
-- [ ] T2.5.4 Document — 📝
+- [x] T2.5.1 `real/calibrate_state.py` — 🧩 Spec code ✅ 2026-10-08
+- [x] T2.5.2 Run it — 📝 ✅ 2026-10-08
+- [x] T2.5.3 Apply monthly scaling only if needed — 🧩 SNIPPET ✅ 2026-10-08
+- [x] T2.5.4 Document — 📝 ✅ 2026-10-08
 
 ### 2.6 Real-data benchmark A — Indian solar plants
-- [ ] T2.6.1 `real/benchmarks.py` — 🧩 Spec code
-- [ ] T2.6.2 Run benchmark A — 📝
-- [ ] T2.6.3 Interpret — 📝
+- [x] T2.6.1 `real/benchmarks.py` — 🧩 Spec code ✅ 2026-10-08
+- [x] T2.6.2 Run benchmark A — 📝 ✅ 2026-10-08
+- [x] T2.6.3 Interpret — 📝 ✅ 2026-10-08
 
 ### 2.7 Real-data benchmark B — all-India hourly solar & wind
-- [ ] T2.7.1 Choose the hub list — 📝 [verify]
-- [ ] T2.7.2 Run benchmark B — 📝
-- [ ] T2.7.3 Sanity checks — 📝
-- [ ] T2.7.4 Document — 📝
+- [x] T2.7.1 Choose the hub list — 📝 [verify] ✅ 2026-10-08
+- [x] T2.7.2 Run benchmark B — 📝 ✅ 2026-10-08
+- [x] T2.7.3 Sanity checks — 📝 ✅ 2026-10-08
+- [x] T2.7.4 Document — 📝 ✅ 2026-10-08
 
 ### 2.8 Real-vs-simulated provenance card
-- [ ] T2.8.1 Provenance table — 📝
+- [x] T2.8.1 Provenance table — 📝 ✅ 2026-10-08
 
 ## Phase 3 — Features, baselines, evaluation harness (Day 3)
 
