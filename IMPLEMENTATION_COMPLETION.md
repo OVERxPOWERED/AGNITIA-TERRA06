@@ -12,7 +12,7 @@ Task-level tracker for [`IMPLEMENTATION_ROADMAP.md`](./IMPLEMENTATION_ROADMAP.md
 
 Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped · ✅ copy tested code · 🧩 spec code · 📝 write/do from instructions · **[verify]** confirm a fact first
 
-**Last updated:** 2026-10-08 — tracker created; build not started.
+**Last updated:** 2026-10-09 — Phases 0–9 re-verified on a fresh checkout with real Open-Meteo weather; see the log for corrections. Skipped tasks (Chronos-2 4.3/4.4, GBM tuning 4.5) are counted as done in the table above but remain `[-]`.
 
 ## Progress
 
@@ -120,7 +120,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 - [x] T2.1.6 `real/loaders.py` — 🧩 Spec code ✅ 2026-10-08
 
 ### 2.2 Profile & clean real data
-- [x] T2.2.1 Resolve every [verify] in the loaders — 📝 ✅ 2026-10-08
+- [x] T2.2.1 Resolve every [verify] in the loaders — 📝 ✅ 2026-10-08 (re-fixed 2026-10-09: `load_india_hourly` crashed on the real Mendeley workbooks; now parses both layouts, hour-ending, masks corrupt telemetry)
 - [x] T2.2.2 Save cleaned copies — 📝 ✅ 2026-10-08
 - [x] T2.2.3 Switch demand to the real Indian shape — 📝 ✅ 2026-10-08
 - [x] T2.2.4 Profiling notebook — 📝 ✅ 2026-10-08
@@ -432,6 +432,11 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 
 | Date | Task / subphase | Note |
 |---|---|---|
+| 2026-10-09 | QA-FIX-1 | Real-browser QA of all 10 routes: fixed Control Room retry/zero-KPI placeholders, 404 images, mobile overflow/legend, page titles, aria-current, P10–P90 tooltip, numeric LOW_CONFIDENCE text; hybrid trust = generation-weighted mean (ADR). Known limit: trust scale is relative to the dry validation window, so most hours of the monsoon-adjacent default replay day rank "low" (avg ~20/100) |
+| 2026-10-09 | docs | Narrative docs (README, report, business case, pitch, demo script, architecture, model card) reconciled to harness outputs; stale synthetic numbers (e.g. solar skill 71 %) removed |
+| 2026-10-09 | alerts | Alert thresholds now data-driven from the training split (P10/P25 low, P90 high, P95 ramp; ADR-010); HIGH/RAMP previously never fired; alert precision/recall added to the evaluation; daylight-only solar coverage added to API/UI |
+| 2026-10-09 | 3.1 / 4.8 / 5.9 | CORRECTION: committed accuracy numbers came from SYNTHETIC weather (sample file reproduces from `synthetic_weather.py` to 1e-13). Retrained on real weather with the strict leak-free lead mapping (leads 1–24 → fx1, 25–48 → fx2; ADR). Real test results: solar ensemble nMAE 4.0 %, skill 26 % vs persistence; wind nMAE 8.2 %, skill 37 %. Wind 80 % band covers 73 % (calibrated on dry winter validation, tested on monsoon-heavy window) |
+| 2026-10-09 | 2.2 | `load_india_hourly` fixed and tested (T2.2.1) |
 | 2026-10-08 | 0.2 | Python environment for ml/ completed |
 | 2026-10-08 | 0.1 | Repo scaffold completed |
 | 2026-10-08 | — | v3 build guide + tracker created; reference code tested on synthetic data during planning |
