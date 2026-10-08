@@ -1,0 +1,9 @@
+line-length = 125
+target-version = "py310"
+
+[lint]
+select = ["E", "F", "I"]
+ignore = ["E731", "E402"]
+
+[lint.isort]
+known-first-party = ["terra", "app"]
