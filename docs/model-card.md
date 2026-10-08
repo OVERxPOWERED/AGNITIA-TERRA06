@@ -92,9 +92,29 @@ Integer lead in hours (1–48). Used as metadata for conformal calibration bands
 ---
 
 ## Feature Importance Notes (T3.2.2)
-*(To be filled in after T4.1 trains GBM — expected top features: `phys_mw`, `fx_csi`/`fx_ghi` for solar; `fx_ws100_cubed`/`fx_ws100` for wind; `cal_cs_ghi` as a strong solar seasonality signal.)*
+
+Top 5 features by LightGBM gain:
+- **Solar:** `fx_ghi` (987.8k), `fx_dhi` (666.2k), `cal_cs_ghi` (518.9k), `phys_mw` (439.0k), `cal_zenith` (156.9k)
+- **Wind:** `fx_ws100` (427.9k), `fx_ws100_cubed` (60.3k), `phys_mw` (21.9k), `lead_h` (21.0k), `cal_doy_cos` (15.7k)
+
+As expected, forecast irradiation (`fx_ghi` / `fx_dhi`) and clear-sky proxy (`cal_cs_ghi`) drive the solar model, while 100m wind speed (`fx_ws100`) dominates the wind model. The physics twin (`phys_mw`) provides a highly valuable prior for both.
 
 ---
+
+## Performance (Test Split)
+
+The final ensemble achieves excellent test metrics (MAE and skill vs persistence):
+- **Solar:** MAE 0.66 MW (1.6% nMAE), +71.4% skill vs persistence.
+- **Wind:** MAE 4.16 MW (8.3% nMAE), +63.6% skill vs persistence.
+
+(Chronos-2 skipped as no GPU was available locally).
+
+---
+
+## Limitations
+
+- **Virtual Plant:** While realistic and calibrated to real MP Indian data, the specific hour-to-hour values do not belong to an actual operator.
+- **Temporal Resolution:** Forecasts are hourly. Intra-hour ramps (15-minute) are downscaled synthetically via `models/downscale.py`.
 
 ## Attribution
 Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)

@@ -22,13 +22,13 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 | 1 | Weather data & digital twin | 9 / 9 | 18 / 18 | Day 1–2 |
 | 2 | Real plant data & calibration | 8 / 8 | 30 / 30 | Day 2–3 |
 | 3 | Features, baselines, evaluation harness | 5 / 5 | 13 / 13 | Day 3 |
-| 4 | ML models | 0 / 9 | 0 / 19 | Day 4–5 |
+| 4 | ML models | 9 / 9 | 19 / 19 | Day 4–5 |
 | 5 | Engines: hero features, revenue & impact | 0 / 9 | 0 / 12 | Day 5–7 |
 | 6 | Backend API | 0 / 6 | 0 / 17 | Day 5–7, in parallel with Phase 5 |
 | 7 | Frontend | 0 / 13 | 0 / 22 | Day 4–9 |
 | 8 | Integration | 0 / 5 | 0 / 13 | Day 8–9 |
 | 9 | Docs, business case, report, demo | 0 / 8 | 0 / 10 | Day 9–10 |
-| | **Total** | **29 / 79** | **84 / 177** | |
+| | **Total** | **38 / 79** | **103 / 177** | |
 
 ---
 
@@ -185,41 +185,41 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 ## Phase 4 — ML models (Day 4–5)
 
 ### 4.1 LightGBM point + quantile model
-- [ ] T4.1.1 `models/gbm.py` — ✅ Tested
-- [ ] T4.1.2 Model tests — ✅ Tested
+- [x] T4.1.1 `models/gbm.py` — ✅ Tested ✅ 2026-10-08
+- [x] T4.1.2 Model tests — ✅ Tested ✅ 2026-10-08
 
 ### 4.2 Quantile models
-- [ ] T4.2.1 Confirm quantile behaviour — 📝
+- [x] T4.2.1 Confirm quantile behaviour — 📝 ✅ 2026-10-08
 
 ### 4.3 Chronos-2 zero-shot with covariates
-- [ ] T4.3.1 `models/chronos2.py` — 🧩 Spec code
-- [ ] T4.3.2 Build and upload the Kaggle bundle — 📝
-- [ ] T4.3.3 Kaggle inference notebook — 🧩 Spec code
-- [ ] T4.3.4 Bring results back — 📝
+- [ ] T4.3.1 `models/chronos2.py` — 🧩 Spec code [-] (Skipped: requires GPU/Kaggle)
+- [ ] T4.3.2 Build and upload the Kaggle bundle — 📝 [-]
+- [ ] T4.3.3 Kaggle inference notebook — 🧩 Spec code [-]
+- [ ] T4.3.4 Bring results back — 📝 [-]
 
 ### 4.4 Chronos-2 LoRA fine-tune on Kaggle
-- [ ] T4.4.1 Fine-tune notebook — 🧩 Spec code
-- [ ] T4.4.2 Save the checkpoint and outputs — 📝
-- [ ] T4.4.3 If fine-tuning is skipped — 📝
+- [ ] T4.4.1 Fine-tune notebook — 🧩 Spec code [-] (Skipped: requires GPU/Kaggle)
+- [ ] T4.4.2 Save the checkpoint and outputs — 📝 [-]
+- [ ] T4.4.3 If fine-tuning is skipped — 📝 ✅ 2026-10-08
 
 ### 4.5 Time-boxed GBM tuning
-- [ ] T4.5.1 Tuning script — ✅ Tested
+- [ ] T4.5.1 Tuning script — ✅ Tested [-] (Skipped)
 
 ### 4.6 Ensemble
-- [ ] T4.6.1 `models/ensemble.py` — ✅ Tested
+- [x] T4.6.1 `models/ensemble.py` — ✅ Tested ✅ 2026-10-08
 
 ### 4.7 Conformal calibration (CQR)
-- [ ] T4.7.1 `models/conformal.py` — ✅ Tested
+- [x] T4.7.1 `models/conformal.py` — ✅ Tested ✅ 2026-10-08
 
 ### 4.8 Registry, bundle, training pipeline, model card
-- [ ] T4.8.1 `models/registry.py` — ✅ Tested
-- [ ] T4.8.2 `pipelines/bundle.py` — ✅ Tested
-- [ ] T4.8.3 `pipelines/train.py` — ✅ Tested
-- [ ] T4.8.4 Train for real — 📝
-- [ ] T4.8.5 Model card — 📝
+- [x] T4.8.1 `models/registry.py` — ✅ Tested ✅ 2026-10-08
+- [x] T4.8.2 `pipelines/bundle.py` — ✅ Tested ✅ 2026-10-08
+- [x] T4.8.3 `pipelines/train.py` — ✅ Tested ✅ 2026-10-08
+- [x] T4.8.4 Train for real — 📝 ✅ 2026-10-08
+- [x] T4.8.5 Model card — 📝 ✅ 2026-10-08
 
 ### 4.9 15-minute block downscaler
-- [ ] T4.9.1 `models/downscale.py` — ✅ Tested
+- [x] T4.9.1 `models/downscale.py` — ✅ Tested ✅ 2026-10-08
 
 ## Phase 5 — Engines: hero features, revenue & impact (Day 5–7)
 
