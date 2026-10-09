@@ -1,0 +1,14 @@
+# Allowlist for the /location page: "the same plant, placed at another site, on live weather".
+# Coordinates and altitudes are approximate (verify: true) and only drive the weather request and the solar geometry.
+# Add a site by appending an entry; the API accepts only ids listed here.
+verify: true
+default: dewas
+locations:
+  - {id: dewas,     name: "Dewas",              region: "Madhya Pradesh", latitude: 22.96, longitude: 76.05, altitude_m: 536,  note: "Home site: the models were trained and tested here."}
+  - {id: bhadla,    name: "Bhadla",             region: "Rajasthan",      latitude: 27.54, longitude: 71.92, altitude_m: 230,  note: "Desert solar park, very high sunshine."}
+  - {id: jaisalmer, name: "Jaisalmer",          region: "Rajasthan",      latitude: 26.92, longitude: 70.90, altitude_m: 225,  note: "Strong wind and sun on the Thar plateau."}
+  - {id: kutch,     name: "Kutch",              region: "Gujarat",        latitude: 23.80, longitude: 69.70, altitude_m: 15,   note: "Coastal desert, large hybrid parks."}
+  - {id: pavagada,  name: "Pavagada",           region: "Karnataka",      latitude: 14.10, longitude: 77.28, altitude_m: 650,  note: "One of India's largest solar parks."}
+  - {id: chitradurga, name: "Chitradurga",      region: "Karnataka",      latitude: 14.23, longitude: 76.40, altitude_m: 730,  note: "Wind-rich ridge lines."}
+  - {id: muppandal, name: "Muppandal",          region: "Tamil Nadu",     latitude: 8.26,  longitude: 77.54, altitude_m: 100,  note: "Mountain-pass wind, strong in the monsoon."}
+  - {id: satara,    name: "Chalkewadi, Satara", region: "Maharashtra",    latitude: 17.58, longitude: 73.82, altitude_m: 1100, note: "High plateau wind farm."}

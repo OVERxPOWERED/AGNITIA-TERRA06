@@ -64,12 +64,19 @@ def replay_dataset(cfg: TerraConfig, at: str | None) -> tuple[pd.DataFrame, pd.T
     return ds, t0
 
 
-def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None) -> Path:
+def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, *, runs_dir: Path | None = None,
+                 write_latest: bool = True, progress=None) -> Path:
+    """`runs_dir`/`write_latest` let the /location feature write elsewhere without touching the main LATEST run.
+    `progress(step: str)` is called as each stage starts (used by the API for the loading screen)."""
+    step = progress or (lambda _s: None)
+    runs_root = runs_dir or RUNS
+    step("weather")
     ds, t0 = live_dataset(cfg) if mode == "live" else replay_dataset(cfg, at)
+    step("models")
     issues = pd.DatetimeIndex([t0])
     eng = load_object("hybrid", "engines@latest")
     alert_thrs = eng.get("alert_thresholds") if isinstance(eng, dict) else None
-    out = RUNS / t0.strftime("%Y%m%dT%H")
+    out = runs_root / t0.strftime("%Y%m%dT%H")
     out.mkdir(parents=True, exist_ok=True)
 
     per_source: dict[str, pd.DataFrame] = {}
@@ -105,6 +112,7 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None) 
         th_s = alert_thrs.get(s) if alert_thrs else None
         all_alerts += generate_alerts(fc, s, cap, cfg.alerts, t0, trust=fc["trust_score"], thresholds=th_s)
 
+    step("plan")
     sol, win = per_source["solar"], per_source["wind"]
     hyb_q = hybrid_forecast(sol[list(QCOLS)], win[list(QCOLS)], sol["cal_is_day"].to_numpy(),
                             eng["rho_by_day"], cfg.capacity_mw("solar"), cfg.capacity_mw("wind"))
@@ -156,9 +164,10 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None) 
 
     (out / "alerts.json").write_text(json.dumps([a.to_dict() for a in all_alerts], indent=2))
     meta = {"issue_time_utc": t0.isoformat(), "mode": mode, "created_at": datetime.now(timezone.utc).isoformat(),
-            "attribution": ATTRIBUTION, "plant": "TERRA virtual twin", "config_hash": cfg.hash(),
+            "attribution": ATTRIBUTION, "plant": "TERRA virtual twin", "site": cfg.site.name, "config_hash": cfg.hash(),
             "n_alerts": len(all_alerts)}
     (out / "run.json").write_text(json.dumps(meta, indent=2))
-    (RUNS / "LATEST").write_text(out.name)
+    if write_latest:
+        (runs_root / "LATEST").write_text(out.name)
     log.info("forecast run written: %s (%d alerts)", out, len(all_alerts))
     return out
