@@ -33,7 +33,9 @@ export default function ModelsPage() {
   const effectiveSource = source === "real" ? "solar" : source;
   const overall = useModelsCompare(effectiveSource, undefined, daylight);
   const byLead = useModelsCompare(effectiveSource, "lead_bucket", daylight);
-  const best = overall.data?.rows.filter((r) => r.model !== "persistence").sort((a, b) => a.mae - b.mae)[0]?.model;
+  const best = overall.data?.rows
+    .filter((r) => r.model !== "persistence" && !r.model.startsWith("chronos2"))
+    .sort((a, b) => a.mae - b.mae)[0]?.model;
   const assumptions = useAssumptions();
 
   const option = useMemo(() => {
@@ -114,18 +116,30 @@ export default function ModelsPage() {
                     <tr>{["Model", "MAE MW", "RMSE MW", "nMAE %", "Skill vs persistence", "80% band coverage", "90% band coverage", "Band width %"].map((h) => <th key={h} className="px-2 py-1 font-medium">{h}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {overall.data?.rows.map((r) => (
-                      <tr key={r.model} className={r.model === best ? "bg-hybrid/10 font-semibold" : ""}>
-                        <td className="px-2 py-1">{r.model}{r.model === best && " ★"}</td>
-                        <td className="px-2 py-1">{r.mae.toFixed(2)}</td>
-                        <td className="px-2 py-1">{r.rmse.toFixed(2)}</td>
-                        <td className="px-2 py-1">{r.nmae_pct.toFixed(2)}</td>
-                        <td className="px-2 py-1">{r.skill_vs_persistence == null ? "—" : `${(100 * r.skill_vs_persistence).toFixed(0)}%`}</td>
-                        <td className="px-2 py-1">{(100 * r.picp80).toFixed(1)}%</td>
-                        <td className="px-2 py-1">{(100 * r.picp90).toFixed(1)}%</td>
-                        <td className="px-2 py-1">{r.mpiw80_pct.toFixed(1)}</td>
-                      </tr>
-                    ))}
+                    {overall.data?.rows.map((r) => {
+                      const isBenchmark = r.model.startsWith("chronos2");
+                      const isBest = r.model === best;
+                      return (
+                        <tr key={r.model} className={isBest ? "bg-hybrid/10 font-semibold" : ""}>
+                          <td className="px-2 py-1">
+                            {r.model}
+                            {isBest && " ★"}
+                            {isBenchmark && (
+                              <span className="ml-1.5 rounded bg-muted/20 px-1 py-0.5 text-xs text-muted font-normal">
+                                benchmark
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-1">{r.mae.toFixed(2)}</td>
+                          <td className="px-2 py-1">{r.rmse.toFixed(2)}</td>
+                          <td className="px-2 py-1">{r.nmae_pct.toFixed(2)}</td>
+                          <td className="px-2 py-1">{r.skill_vs_persistence == null ? "—" : `${(100 * r.skill_vs_persistence).toFixed(0)}%`}</td>
+                          <td className="px-2 py-1">{(100 * r.picp80).toFixed(1)}%</td>
+                          <td className="px-2 py-1">{(100 * r.picp90).toFixed(1)}%</td>
+                          <td className="px-2 py-1">{r.mpiw80_pct.toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

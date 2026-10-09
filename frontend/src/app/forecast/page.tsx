@@ -10,11 +10,20 @@ import { useForecast, useHistory } from "@/hooks/api";
 import { cssVar } from "@/lib/format";
 
 type Src = "solar" | "wind";
-const MODELS = ["ensemble", "gbm", "physics", "persistence"] as const;
+const MODELS = ["ensemble", "gbm", "physics", "persistence", "chronos2_zs"] as const;
+type ModelKey = (typeof MODELS)[number];
+
+const MODEL_LABELS: Record<ModelKey, string> = {
+  ensemble: "Ensemble",
+  gbm: "LightGBM",
+  physics: "Physics",
+  persistence: "Persistence",
+  chronos2_zs: "Chronos-2 (Zero-shot)",
+};
 
 export default function ForecastPage() {
   const [source, setSource] = useState<Src>("solar");
-  const [model, setModel] = useState<(typeof MODELS)[number]>("ensemble");
+  const [model, setModel] = useState<ModelKey>("ensemble");
   const hist = useHistory(source, model);
   const fc = useForecast(source);
   const color = cssVar(source === "solar" ? "--solar" : "--wind");
@@ -43,7 +52,7 @@ export default function ForecastPage() {
         <h1 className="mr-auto text-2xl font-semibold">Forecast Explorer</h1>
         <Segmented label="Source" value={source} onChange={setSource}
           options={[{ value: "solar", label: "Solar" }, { value: "wind", label: "Wind" }]} />
-        <Segmented label="Model" value={model} onChange={setModel} options={MODELS.map((m) => ({ value: m, label: m }))} />
+        <Segmented label="Model" value={model} onChange={setModel} options={MODELS.map((m) => ({ value: m, label: MODEL_LABELS[m] }))} />
       </div>
       <Card>
         <CardTitle>Actual vs predicted — held-out test days (day-ahead, issued 05:30 IST)</CardTitle>
