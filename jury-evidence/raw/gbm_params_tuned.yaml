@@ -1,0 +1,37 @@
+solar:
+  adopted: true
+  tuned_on: tune_holdout
+  objective: mean_pinball_5q
+  default_pinball: 0.46092
+  best_pinball: 0.44116
+  relative_improvement: 0.04285
+  n_trials: 96
+  seed: 42
+  wall_clock_minutes: 40.27
+  params:
+    num_leaves: 17
+    min_child_samples: 190
+    learning_rate: 0.0204
+    subsample: 0.75908
+    colsample_bytree: 0.92444
+    reg_lambda: 4.13625
+    reg_alpha: 4.56068
+
+wind:
+  adopted: true
+  tuned_on: tune_holdout
+  objective: mean_pinball_5q
+  default_pinball: 0.89478
+  best_pinball: 0.83409
+  relative_improvement: 0.06782
+  n_trials: 150
+  seed: 42
+  wall_clock_minutes: 40.06
+  params:
+    num_leaves: 15
+    min_child_samples: 121
+    learning_rate: 0.0304
+    subsample: 0.70885
+    colsample_bytree: 0.90749
+    reg_lambda: 0.05976
+    reg_alpha: 4.50032

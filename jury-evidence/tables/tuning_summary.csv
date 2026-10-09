@@ -1,0 +1,3 @@
+source,trials,minutes,default_pinball,tuned_pinball,improvement_pct,adopted
+solar,96,40.27,0.46092,0.44116,4.29,True
+wind,150,40.06,0.89478,0.83409,6.78,True

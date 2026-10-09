@@ -1,0 +1,7 @@
+source,level,mean_abs_error_mw,rank_correlation
+solar,low,4.901,-0.6718304097426977
+solar,medium,2.305,-0.6718304097426977
+solar,high,0.671,-0.6718304097426977
+wind,low,6.924,-0.5215648994077736
+wind,medium,3.675,-0.5215648994077736
+wind,high,1.879,-0.5215648994077736

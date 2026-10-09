@@ -1,0 +1,7 @@
+source,alert,threshold_mw,precision,recall,alert_hours,event_hours
+solar,LOW,2.11,0.995,0.793,200,251
+solar,HIGH,28.95,0.775,0.186,80,333
+wind,LOW,1.14,0.753,0.218,162,559
+wind,HIGH,18.21,0.746,0.366,331,675
+hybrid,LOW,1.68,0.708,0.221,72,231
+hybrid,HIGH,31.7,0.848,0.453,374,700
