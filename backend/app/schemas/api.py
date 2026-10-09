@@ -172,3 +172,41 @@ class ImpactResponse(BaseModel):
     value_of_forecast: list[dict]
     hybrid: dict
     sources: list[str]
+
+
+# ---- /locations: the same plant, placed at another allowlisted site, on live weather ----
+class LocationInfo(BaseModel):
+    id: str
+    name: str
+    region: str
+    latitude: float
+    longitude: float
+    altitude_m: float
+    note: str
+    is_home: bool
+
+
+class LocationJob(BaseModel):
+    job_id: str
+    location_id: str
+    status: Literal["queued", "running", "done", "failed"]
+    step: Literal["queued", "weather", "models", "plan", "done"]
+    started_at: str
+    finished_at: str | None = None
+    error: str | None = None
+    reused: bool = False
+
+
+class LocationResult(BaseModel):
+    location: LocationInfo
+    issue_time_utc: str
+    generated_at: str
+    solar: list[ForecastPoint]
+    wind: list[ForecastPoint]
+    hybrid: list[ForecastPoint]
+    dispatch: list[DispatchPoint]
+    kpis: Kpis
+    alerts: list[AlertOut]
+    validated_here: bool
+    caveat: str
+    attribution: str

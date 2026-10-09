@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import alerts, assumptions, dispatch, dsm, forecast, health, impact, models, whatif
+from app.api.routes import alerts, assumptions, dispatch, dsm, forecast, health, impact, locations, models, whatif
 from app.db.models import engine, reseed_if_empty
 from app.scheduler import ForecastJob, attach_loop
 from app.services.runs import NoRunYet
@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
     s = get_settings()
     app = FastAPI(title="TERRA API", version=s.version, lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=s.cors_list, allow_methods=["*"], allow_headers=["*"])
-    for r in (health, forecast, models, alerts, dispatch, whatif, dsm, impact, assumptions):
+    for r in (health, forecast, models, alerts, dispatch, whatif, dsm, impact, assumptions, locations):
         app.include_router(r.router)
 
     @app.exception_handler(NoRunYet)
