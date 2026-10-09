@@ -127,7 +127,7 @@ def _run(job: dict) -> None:
         applied = apply_profile(load_config(), loc, job["clean"], job["calibration"])
         out = run_forecast(applied.user_cfg, "live", runs_dir=ROOT / loc.id / job["key"], write_latest=False,
                            progress=lambda s: job.__setitem__("step", s), model_cfg=applied.model_cfg,
-                           adjust=applied, second_opinions=True, api_keys=job["keys"])
+                           adjust=applied, second_opinions=True, api_keys=job["keys"], site_id=loc.id)
         job["keys"] = {}                                    # provider keys are used once and dropped
         if job.get("user_id"):                              # signed in: check against the schedule they submitted
             from app.services.notify import deviation_alerts_for_run

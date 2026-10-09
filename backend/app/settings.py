@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     twilio_sid: str = ""
     twilio_token: str = ""
     twilio_whatsapp_from: str = "whatsapp:+14155238886"  # Twilio sandbox number by default
+    twilio_content_sid: str = ""                       # HX... Content Template with two variables; used when Twilio refuses free text
     monitor_minutes: int = 30                          # how often signed-in plants with WhatsApp on are checked
     monitor_enabled: bool = True
     max_whatsapp_per_day: int = 10

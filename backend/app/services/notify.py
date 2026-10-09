@@ -27,6 +27,7 @@ def provider_status() -> dict:
     p = s.whatsapp_provider.lower()
     ready = {"meta": bool(s.meta_wa_token and s.meta_wa_phone_id), "twilio": bool(s.twilio_sid and s.twilio_token)}.get(p, False)
     return {"provider": p, "ready": ready, "template": s.meta_wa_template or None if p == "meta" else None,
+            "from": s.twilio_whatsapp_from if p == "twilio" else None, "content_template": bool(s.twilio_content_sid),
             "monitor_minutes": s.monitor_minutes if s.monitor_enabled else None}
 
 
@@ -49,8 +50,18 @@ def send_whatsapp(to: str, text: str, params: list[str]) -> tuple[str, str]:
             return "failed", f"HTTP {r.status_code}: {r.text[:300]}"
         if p == "twilio" and s.twilio_sid and s.twilio_token:
             url = f"https://api.twilio.com/2010-04-01/Accounts/{s.twilio_sid}/Messages.json"
-            r = requests.post(url, data={"From": s.twilio_whatsapp_from, "To": f"whatsapp:{to}", "Body": text[:1500]},
-                              auth=(s.twilio_sid, s.twilio_token), timeout=TIMEOUT_S)
+            base = {"From": s.twilio_whatsapp_from, "To": f"whatsapp:{to}"}
+            auth = (s.twilio_sid, s.twilio_token)
+            # Content templates when one is configured (senders that refuse free text, or outside the 24 h window);
+            # otherwise plain text, which Twilio only delivers inside the 24 h window after the user last wrote.
+            if s.twilio_content_sid:
+                body = {**base, "ContentSid": s.twilio_content_sid,
+                        "ContentVariables": json.dumps({"1": f"{params[0]}: {params[1]}"[:900], "2": params[2][:200]})}
+                r = requests.post(url, data=body, auth=auth, timeout=TIMEOUT_S)
+                if r.ok:
+                    return "sent", r.json().get("sid", "")
+                log.warning("Twilio template send failed (%s); trying plain text", r.status_code)
+            r = requests.post(url, data={**base, "Body": text[:1500]}, auth=auth, timeout=TIMEOUT_S)
             if r.ok:
                 return "sent", r.json().get("sid", "")
             return "failed", f"HTTP {r.status_code}: {r.text[:300]}"
@@ -178,7 +189,7 @@ def monitor_once(only_user: str | None = None) -> dict:
             clean = {k: v for k, v in chk.clean.items() if k != "location_id"}
             applied = apply_profile(load_config(), loc, clean, cal)
             out = run_forecast(applied.user_cfg, "live", runs_dir=loc_svc.ROOT / loc.id / f"monitor-{p.user_id[:8]}",
-                               write_latest=False, model_cfg=applied.model_cfg, adjust=applied)
+                               write_latest=False, model_cfg=applied.model_cfg, adjust=applied, site_id=loc.id)
             alerts = json.loads((out / "alerts.json").read_text())
             hyb_cap = applied.summary["solar_ac_mw"] + applied.summary["wind_mw"]
             alerts += deviation_alerts_for_run(p.user_id, out, hyb_cap, applied.summary["plant_name"])

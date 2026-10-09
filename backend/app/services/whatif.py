@@ -9,16 +9,17 @@ import numpy as np
 from terra.config import load_config
 from terra.data.build_dataset import load_dataset
 from terra.engines.whatif import Scenario, run_whatif
-from terra.models.registry import load_object
+from terra.models.registry import load_object, load_serving_bundle
 
 from app.services import runs
 
 _cache: dict[str, dict] = {}
 
 
-@lru_cache(maxsize=1)
-def _models() -> tuple[dict, dict]:
-    bundles = {s: load_object(s, "bundle@latest") for s in ("solar", "wind")}
+@lru_cache(maxsize=2)
+def _models(live: bool = False) -> tuple[dict, dict]:
+    """Replay what-ifs use the Dewas model; what-ifs on a live plant forecast use the multi-site model."""
+    bundles = {s: (load_serving_bundle(s) if live else load_object(s, "bundle@latest")) for s in ("solar", "wind")}
     return bundles, load_object("hybrid", "engines@latest")
 
 
@@ -37,7 +38,7 @@ def whatif_job(sc: Scenario, job_id: str) -> dict | None:
     if key in _cache:
         return _cache[key]
     applied = apply_profile(load_config(), get_location(job["loc"]), job["clean"], job["calibration"])
-    bundles, engines = _models()
+    bundles, engines = _models(True)
     rows = {s: pd.read_parquet(d / f"rows_{s}.parquet") for s in ("solar", "wind")}
     fc = pd.read_parquet(d / "forecast.parquet")
     factor = {s: fc[fc["source"] == s].sort_values("lead_h")["plant_factor"].to_numpy() for s in ("solar", "wind")}
