@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -26,9 +27,24 @@ from terra.schema import OPENMETEO_VARS
 
 log = get_logger(__name__)
 
-LIVE_TTL_S = 20 * 60          # live forecasts change a few times a day; one request per place per 20 minutes
-LIVE_STALE_S = 4 * 3600       # how old an answer may be when Open-Meteo is refusing requests
+LIVE_TTL_S = 30 * 60            # live forecasts change a few times a day; one request per place per 30 minutes
+PREFETCH_MAX_AGE_S = 2 * 3600   # a published prefetch copy is used while it is younger than this
+LIVE_STALE_S = 6 * 3600         # how old a copy may be when Open-Meteo is refusing requests
 _LIVE: dict[str, tuple[float, dict]] = {}
+_LOCKS: dict[str, threading.Lock] = {}
+_LOCKS_GUARD = threading.Lock()
+
+
+def payload_key(url: str, params: dict) -> str:
+    """Stable name for one request (the prefetch workflow publishes <key>.json for each)."""
+    return hashlib.sha256(json.dumps({"url": url, "params": params}, sort_keys=True).encode()).hexdigest()[:24]
+
+
+def _lock_for(key: str) -> threading.Lock:
+    with _LOCKS_GUARD:
+        return _LOCKS.setdefault(key, threading.Lock())
+
+
 ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0)"
 PREVIOUS_RUNS_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -86,24 +102,76 @@ class OpenMeteoClient:
         r.raise_for_status()
         return r.json()
 
-    def get_live(self, url: str, params: dict) -> dict:
-        """Forecast requests that must be fresh, but not on every call: reuse an answer for LIVE_TTL_S, and if
-        Open-Meteo refuses (rate limit on a shared host IP) fall back to the last answer up to LIVE_STALE_S old."""
-        key = json.dumps({"url": url, "params": params}, sort_keys=True)
-        now = time.monotonic()
+    def get_live(self, url: str, params: dict, force: bool = False) -> dict:
+        """Live forecast request, spending as few Open-Meteo calls as possible. Order of preference:
+        1. this process's memory (LIVE_TTL_S), 2. the disk copy (same TTL, survives restarts),
+        3. the prefetched copy published by the scheduled workflow (PREFETCH_MAX_AGE_S), 4. a real request.
+        If the real request is refused (free-tier limit, shared host address) any copy up to LIVE_STALE_S old is used.
+        Concurrent callers for the same request share one fetch. `force` skips 1-3 (used by the prefetch job)."""
+        key = payload_key(url, params)
+        with _lock_for(key):
+            now = time.time()
+            if not force:
+                for age, data in (self._mem(key), self._disk(key)):
+                    if data is not None and age < LIVE_TTL_S:
+                        return data
+                pre = self._prefetched(key)
+                if pre is not None and pre[0] < PREFETCH_MAX_AGE_S:
+                    self._remember(key, pre[1], pre[2])
+                    return pre[1]
+            try:
+                data = self._fetch_live(url, params)
+            except Exception as exc:  # noqa: BLE001
+                pre = self._prefetched(key)
+                best = [x for x in (self._mem(key), self._disk(key), pre) if x and x[1] is not None]
+                if best:
+                    age, data = min(best, key=lambda x: x[0])[:2]
+                    if age < LIVE_STALE_S:
+                        log.warning("Open-Meteo unavailable (%s); serving a copy that is %d min old",
+                                    type(exc).__name__, age // 60)
+                        return data
+                raise
+            self._remember(key, data, now)
+            return data
+
+    # --- live-copy stores -------------------------------------------------------------------------------------
+    def _mem(self, key: str) -> tuple[float, dict | None]:
         hit = _LIVE.get(key)
-        if hit and now - hit[0] < LIVE_TTL_S:
-            return hit[1]
+        return (time.time() - hit[0], hit[1]) if hit else (float("inf"), None)
+
+    def _live_path(self, key: str) -> Path:
+        return self.cache_dir / "live" / f"{key}.json"
+
+    def _disk(self, key: str) -> tuple[float, dict | None]:
+        p = self._live_path(key)
         try:
-            data = self._fetch_live(url, params)
-        except Exception as exc:  # noqa: BLE001
-            if hit and now - hit[0] < LIVE_STALE_S:
-                log.warning("Open-Meteo unavailable (%s); serving the answer from %d min ago",
-                            type(exc).__name__, (now - hit[0]) // 60)
-                return hit[1]
-            raise
-        _LIVE[key] = (now, data)
-        return data
+            d = json.loads(p.read_text())
+            return time.time() - d["fetched_at"], d["payload"]
+        except Exception:  # noqa: BLE001
+            return float("inf"), None
+
+    def _remember(self, key: str, data: dict, fetched_at: float) -> None:
+        _LIVE[key] = (fetched_at, data)
+        try:
+            p = self._live_path(key)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(json.dumps({"fetched_at": fetched_at, "payload": data}))
+        except OSError:
+            pass
+
+    def _prefetched(self, key: str) -> tuple[float, dict, float] | None:
+        """(age_s, payload, fetched_at) from the published prefetch folder, if configured and present."""
+        base = os.environ.get("TERRA_WEATHER_PREFETCH_URL", "").strip().rstrip("/")
+        if not base:
+            return None
+        try:
+            r = self._http.get(f"{base}/{key}.json", timeout=10.0)
+            if r.status_code != 200:
+                return None
+            d = r.json()
+            return time.time() - d["fetched_at"], d["payload"], d["fetched_at"]
+        except Exception:  # noqa: BLE001
+            return None
 
     @retry(retry=retry_if_exception(_retryable), wait=wait_exponential(multiplier=2, min=2, max=10),
            stop=stop_after_attempt(3), reraise=True)
@@ -182,6 +250,16 @@ class OpenMeteoClient:
             log.info("previous-runs %s..%s ok", s, e)
         return pd.concat(frames).sort_index().pipe(lambda d: d[~d.index.duplicated()])
 
+    @staticmethod
+    def live_params(lat: float, lon: float, variables: list[str], model: str | None = None, past_days: int = 3,
+                    forecast_days: int = 3) -> dict:
+        params = {"latitude": lat, "longitude": lon, "hourly": ",".join(OPENMETEO_VARS[v] for v in variables),
+                  "past_days": past_days, "forecast_days": forecast_days,
+                  "wind_speed_unit": "ms", "timezone": "GMT"}
+        if model:
+            params["models"] = model
+        return params
+
     def fetch_live_forecast(self, lat: float, lon: float, variables: list[str],
                             model: str | None = None, past_days: int = 3,
                             forecast_days: int = 3) -> pd.DataFrame:
@@ -189,11 +267,7 @@ class OpenMeteoClient:
 
         In live mode every lead uses the latest run, so we copy it to fx0_/fx1_/fx2_.
         """
-        params = {"latitude": lat, "longitude": lon, "hourly": ",".join(OPENMETEO_VARS[v] for v in variables),
-                  "past_days": past_days, "forecast_days": forecast_days,
-                  "wind_speed_unit": "ms", "timezone": "GMT"}
-        if model:
-            params["models"] = model
+        params = self.live_params(lat, lon, variables, model, past_days, forecast_days)
         payload = self.get_live(FORECAST_URL, params)
         base = self.to_frame(payload, {OPENMETEO_VARS[v]: v for v in variables})
         out = {}

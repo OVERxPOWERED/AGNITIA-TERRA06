@@ -24,6 +24,9 @@ COPY docs docs
 # Artifact delivery via GitHub Release asset build args
 # Defaults point at the published release asset (public URL + checksum, nothing secret).
 # Override with --build-arg when publishing a new bundle (see docs/deployment.md).
+# Live weather is read from files the "Prefetch weather" workflow publishes, before Open-Meteo is called.
+ENV TERRA_WEATHER_PREFETCH_URL="https://raw.githubusercontent.com/OVERxPOWERED/AGNITIA-TERRA06/weather-data"
+
 ARG ARTIFACT_URL="https://github.com/OVERxPOWERED/AGNITIA-TERRA06/releases/download/artifacts-20261009-b/terra-artifacts-20261009T161221Z.zip"
 ARG ARTIFACT_SHA256="58b1eab943e7378a6eb9c80f5e551aa2cc6ff11f9d51b5f821fcbc2b23e68f86"
 

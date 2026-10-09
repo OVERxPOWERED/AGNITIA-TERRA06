@@ -97,3 +97,43 @@ def test_deviation_watch_flags_sustained_breach_only():
     al = deviation_risk_alerts(expected, committed, 90.0, t0)
     assert len(al) == 1 and al[0].type == "DEVIATION_RISK" and al[0].severity == "critical"
     assert "Revise the schedule" in al[0].message and "13%" in al[0].message
+
+
+def test_live_weather_prefers_prefetch_then_serves_stale(tmp_path, monkeypatch):
+    import http.server
+    import json
+    import threading
+    import time
+
+    from terra.data import openmeteo as om
+
+    params = {"latitude": 1.0, "longitude": 2.0, "hourly": "x"}
+    key = om.payload_key(om.FORECAST_URL, params)
+    stored = {"fetched_at": time.time() - 60, "payload": {"hourly": {"time": []}, "from": "prefetch"}}
+    (tmp_path / f"{key}.json").write_text(json.dumps(stored))
+
+    class H(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **k):
+            super().__init__(*a, directory=str(tmp_path), **k)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    monkeypatch.setenv("TERRA_WEATHER_PREFETCH_URL", f"http://127.0.0.1:{srv.server_port}")
+    om._LIVE.clear()
+    c = om.OpenMeteoClient(cache_dir=tmp_path / "cache")
+    calls = []
+    monkeypatch.setattr(om.OpenMeteoClient, "_fetch_live", lambda self, u, p: calls.append(1) or {"from": "live"})
+    assert c.get_live(om.FORECAST_URL, params)["from"] == "prefetch" and calls == []     # no Open-Meteo call at all
+    # prefetch gone and memory/disk empty: a live call happens; when it then fails, the earlier copy is served
+    srv.shutdown()
+    om._LIVE.clear()
+    (tmp_path / "cache" / "live" / f"{key}.json").unlink()
+    assert c.get_live(om.FORECAST_URL, params, force=True)["from"] == "live" and calls == [1]
+    monkeypatch.setattr(om.OpenMeteoClient, "_fetch_live", lambda self, u, p: (_ for _ in ()).throw(RuntimeError("429")))
+    (tmp_path / "cache" / "live" / f"{key}.json").unlink()
+    om._LIVE[key] = (time.time() - 3600, {"from": "old"})
+    assert c.get_live(om.FORECAST_URL, params, force=True)["from"] == "old"
+    srv.server_close()

@@ -32,12 +32,16 @@ VARS = {"shortwave_radiation": "ghi", "direct_normal_irradiance": "dni", "diffus
 TIMEOUT_S = 20
 
 
+def models_params(lat: float, lon: float) -> dict:
+    """Request for the three weather models (future hours only: the second opinions never look back)."""
+    return {"latitude": lat, "longitude": lon, "hourly": ",".join(VARS), "models": ",".join(MODELS),
+            "forecast_days": 3, "wind_speed_unit": "ms", "timezone": "GMT"}
+
+
 def fetch_openmeteo_models(lat: float, lon: float, client: OpenMeteoClient | None = None) -> dict[str, pd.DataFrame]:
     """One request, three models -> {model id: frame with w_ghi, w_dni, w_dhi, w_t2m, w_ws10, w_ws100}."""
     client = client or OpenMeteoClient()
-    params = {"latitude": lat, "longitude": lon, "hourly": ",".join(VARS), "models": ",".join(MODELS),
-              "forecast_days": 3, "past_days": 1, "wind_speed_unit": "ms", "timezone": "GMT"}
-    payload = client.get_live(FORECAST_URL, params)
+    payload = client.get_live(FORECAST_URL, models_params(lat, lon))
     h = payload["hourly"]
     idx = pd.to_datetime(h["time"], utc=True)
     out = {}
