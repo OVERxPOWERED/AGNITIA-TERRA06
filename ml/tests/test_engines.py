@@ -197,3 +197,17 @@ def test_low_confidence_alert_numeric_context(cfg):
     # Min trust in the window is 25, threshold is cfg.alerts.low_trust_score (40)
     assert f"trust score 25 < {cfg.alerts.low_trust_score:.0f}" in conf_alerts[0].message
 
+
+
+def test_trust_score_is_monotone_and_never_floors_at_zero():
+    from terra.engines.trust import FEATURES, TrustModel
+
+    rng = np.random.default_rng(0)
+    feats = pd.DataFrame(rng.uniform(0, 0.3, size=(500, len(FEATURES))), columns=list(FEATURES))
+    err = feats.to_numpy() @ np.array([0.3, 0.5, 0.0, 0.0]) + rng.normal(0, 0.01, 500).clip(0)
+    m = TrustModel().fit(feats, err)
+    wide = feats.copy()
+    wide[list(FEATURES)] = feats[list(FEATURES)] * 5          # far wider than anything seen in validation
+    s_val, s_wide = m.score(feats), m.score(wide)
+    assert (s_wide > 0).all() and (s_wide <= s_val).all()
+    assert s_val.max() <= 100 and 40 < np.median(s_val) < 90

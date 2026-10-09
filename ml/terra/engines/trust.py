@@ -33,18 +33,20 @@ def trust_features(q: pd.DataFrame, spread: np.ndarray, lead_h: np.ndarray, rece
 @dataclass
 class TrustModel:
     weights: np.ndarray = field(default_factory=lambda: np.array([1.0, 1.0, 0.02, 0.5]))
-    err_ref: float = 0.15                   # |error|/capacity that maps to score 0
+    err_ref: float = 0.15                   # predicted |error|/capacity that maps to score 50
 
     def fit(self, feats: pd.DataFrame, abs_err_frac: np.ndarray) -> "TrustModel":
         A = feats[list(FEATURES)].to_numpy()
         self.weights, _ = nnls(A, abs_err_frac)
         pred = A @ self.weights
-        self.err_ref = float(max(np.quantile(pred, 0.95), 1e-6))
+        self.err_ref = float(max(np.quantile(pred, 0.80), 1e-6))
         return self
 
     def score(self, feats: pd.DataFrame) -> np.ndarray:
         pred = feats[list(FEATURES)].to_numpy() @ self.weights
-        return np.clip(100 * (1 - pred / self.err_ref), 0, 100).round(0)
+        # Smooth, monotone map: 100 at zero predicted error, 50 at err_ref, never a hard floor at 0.
+        # (A linear clip hit exactly 0 for every hour wider than the winter validation range.)
+        return (100 / (1 + (pred / self.err_ref) ** 2)).round(0)
 
     def explain(self, feats: pd.DataFrame) -> list[str]:
         contrib = feats[list(FEATURES)].to_numpy() * self.weights
