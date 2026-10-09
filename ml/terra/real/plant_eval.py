@@ -33,7 +33,7 @@ from terra.eval.metrics import metrics_table
 from terra.features.framing import frame_source, issue_times
 from terra.logs import get_logger
 from terra.models.downscale import downscale_solar, downscale_wind
-from terra.models.registry import load_object
+from terra.models.registry import load_object, load_serving_bundle
 from terra.profile import Applied
 from terra.schema import ACTUAL_VARS, FORECAST_VARS, PHYS, QCOLS
 
@@ -162,7 +162,7 @@ def evaluate_plant(measured: pd.DataFrame, applied: Applied, client: OpenMeteoCl
     fits: dict[str, dict] = {}
     trust_rows = []
     for s in ("solar", "wind"):
-        bundle = load_object(s, "bundle@latest")
+        bundle = load_serving_bundle(s)
         rows = frame_source(ds, s, model, issues, require_target=False)
         q, members, spread = bundle.predict(rows)
         targets = pd.DatetimeIndex(rows["target_time_utc"])

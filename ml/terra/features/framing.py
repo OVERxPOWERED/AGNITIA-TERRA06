@@ -100,6 +100,7 @@ def frame_source(ds: pd.DataFrame, source: str, cfg: TerraConfig, issues: pd.Dat
     cs = out[f"{CAL}cs_ghi"].to_numpy()
     out[f"{FX}csi"] = np.where(cs > 20, out[f"{FX}ghi"] / np.maximum(cs, 1e-6), 0.0).clip(0, 1.5)
     out[f"{FX}ws100_cubed"] = out[f"{FX}ws100"] ** 3
+    out["site_lat"], out["site_lon"], out["site_alt"] = cfg.site.latitude, cfg.site.longitude, cfg.site.altitude_m
     out["capacity_mw"] = cfg.capacity_mw(source)
     out["source"] = source
     if require_target:

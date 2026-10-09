@@ -35,7 +35,7 @@ from terra.engines.trust import hybrid_trust_score, level, trust_features
 from terra.features.framing import frame_source
 from terra.logs import get_logger
 from terra.models.downscale import downscale_solar, downscale_wind
-from terra.models.registry import load_object
+from terra.models.registry import load_object, load_serving_bundle, site_alert_thresholds
 from terra.paths import ARTIFACTS
 from terra.schema import FORECAST_VARS, PHYS, QCOLS
 
@@ -84,7 +84,8 @@ def _physics_ratio(ds: pd.DataFrame, rows: pd.DataFrame, source: str, user: Terr
 
 def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, *, runs_dir: Path | None = None,
                  write_latest: bool = True, progress=None, model_cfg: TerraConfig | None = None,
-                 adjust=None, second_opinions: bool = False, api_keys: dict | None = None) -> Path:
+                 adjust=None, second_opinions: bool = False, api_keys: dict | None = None,
+                 site_id: str | None = None) -> Path:
     """`runs_dir`/`write_latest` let the /location feature write elsewhere without touching the main LATEST run.
     `progress(step: str)` is called as each stage starts (used by the API for the loading screen).
     `model_cfg` is the plant the models were trained for; `cfg` is the operator's plant. When they differ the models
@@ -105,6 +106,8 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
     issues = pd.DatetimeIndex([t0])
     eng = load_object("hybrid", "engines@latest")
     alert_thrs = eng.get("alert_thresholds") if isinstance(eng, dict) else None
+    if mode == "live" and (own := site_alert_thresholds(site_id)):      # this site's own thresholds, not Dewas's
+        alert_thrs = own
     out = runs_root / t0.strftime("%Y%m%dT%H")
     out.mkdir(parents=True, exist_ok=True)
 
@@ -112,7 +115,8 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
     factors: dict[str, np.ndarray] = {}
     all_alerts = []
     for s in ("solar", "wind"):
-        bundle = load_object(s, "bundle@latest")
+        # live forecasts use the multi-site model; the recorded Dewas replay keeps the model its accuracy tables describe
+        bundle = load_serving_bundle(s) if mode == "live" else load_object(s, "bundle@latest")
         rows = frame_source(ds, s, mcfg, issues, require_target=False)
         external = {}
         if any(m.startswith("chronos2") for m in bundle.ensemble.members):

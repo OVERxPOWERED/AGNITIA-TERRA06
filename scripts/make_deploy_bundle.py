@@ -69,13 +69,17 @@ def collect_runtime_files(artifacts_dir: Path) -> list[tuple[Path, str]]:
 
     # 4. Models: active bundles referenced by LATEST
     model_targets = [
-        ("solar", "bundle"),
-        ("wind", "bundle"),
-        ("hybrid", "engines"),
+        ("solar", "bundle", True),
+        ("wind", "bundle", True),
+        ("hybrid", "engines", True),
+        ("solar", "bundle_multisite", False),     # optional: trained by `terra train-multisite`
+        ("wind", "bundle_multisite", False),
     ]
-    for source, subkind in model_targets:
+    for source, subkind, required in model_targets:
         model_latest = artifacts_dir / "models" / source / subkind / "LATEST"
         if not model_latest.is_file():
+            if not required:
+                continue
             raise FileNotFoundError(f"Missing model LATEST pointer: {model_latest}")
         latest_ver = model_latest.read_text().strip()
         files_to_bundle.append((model_latest, f"models/{source}/{subkind}/LATEST"))
@@ -87,6 +91,12 @@ def collect_runtime_files(artifacts_dir: Path) -> list[tuple[Path, str]]:
             if item.is_file():
                 arcname = str(item.relative_to(artifacts_dir))
                 files_to_bundle.append((item, arcname))
+
+    # 5. Multi-site extras: per-site alert thresholds and the leave-one-site-out evidence
+    for name in ("alert_thresholds.json", "loso_metrics.csv", "pooled_test_by_site.csv", "meta.json"):
+        f = artifacts_dir / "multisite" / name
+        if f.is_file():
+            files_to_bundle.append((f, f"multisite/{name}"))
 
     # Validate against forbidden tokens
     for file_path, arcname in files_to_bundle:

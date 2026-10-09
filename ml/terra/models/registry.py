@@ -46,3 +46,18 @@ def load_meta(source: str, ref: str) -> dict:
     if version in ("", "latest"):
         version = (base / "LATEST").read_text().strip()
     return json.loads((base / version / "meta.json").read_text())
+
+
+def load_serving_bundle(source: str):
+    """The model that serves live forecasts: the multi-site bundle when one has been trained, else the Dewas bundle."""
+    if (ARTIFACTS / "models" / source / "bundle_multisite" / "LATEST").exists():
+        return load_object(source, "bundle_multisite@latest")
+    return load_object(source, "bundle@latest")
+
+
+def site_alert_thresholds(site_id: str | None) -> dict | None:
+    """Per-site alert thresholds learned from that site's own training split (multi-site training writes them)."""
+    p = ARTIFACTS / "multisite" / "alert_thresholds.json"
+    if site_id and p.exists():
+        return json.loads(p.read_text()).get(site_id)
+    return None

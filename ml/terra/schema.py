@@ -26,7 +26,7 @@ PHYS = "phys_"         # physics model output on forecast weather
 HIST = "hist_"         # generation history observed at/before issue time
 CAL = "cal_"           # calendar / solar geometry (deterministic)
 ALLOWED_FEATURE_PREFIXES = (FX, PHYS, HIST, CAL)
-EXTRA_FEATURES = ("lead_h",)
+EXTRA_FEATURES = ("lead_h", "site_lat", "site_lon", "site_alt")   # site_*: static place descriptors (multi-site models)
 
 TARGETS = {"solar": "solar_mw", "wind": "wind_mw"}
 QUANTILES = (0.05, 0.10, 0.50, 0.90, 0.95)

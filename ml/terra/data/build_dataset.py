@@ -27,7 +27,7 @@ log = get_logger(__name__)
 
 
 def build_dataset(cfg: TerraConfig, actual: pd.DataFrame, forecast: pd.DataFrame,
-                  real_demand_mw: pd.Series | None = None, save: bool = True) -> pd.DataFrame:
+                  real_demand_mw: pd.Series | None = None, save: bool = True, state_scale: bool = True) -> pd.DataFrame:
     assert actual.index.equals(forecast.index), "actual and forecast must share the same index"
     rng = np.random.default_rng(cfg.realism.seed)
     idx = actual.index
@@ -39,8 +39,8 @@ def build_dataset(cfg: TerraConfig, actual: pd.DataFrame, forecast: pd.DataFrame
 
     # monthly scaling to Madhya Pradesh official capacity factors (task T2.5.3)
     from terra.config import load_yaml
-    try:
-        scales = load_yaml("calibration/state.yaml").get("monthly_scale", {})
+    try:     # Madhya Pradesh calibration: only meaningful for the Dewas site
+        scales = load_yaml("calibration/state.yaml").get("monthly_scale", {}) if state_scale else {}
     except FileNotFoundError:
         scales = {}
     months = idx.tz_convert("Asia/Kolkata").month

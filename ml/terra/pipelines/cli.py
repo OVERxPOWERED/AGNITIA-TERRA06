@@ -162,3 +162,14 @@ def real_benchmark() -> None:
 
 if __name__ == "__main__":
     app()
+
+
+@app.command("train-multisite")
+def train_multisite(skip_loso: bool = typer.Option(False, help="train the pooled model only")) -> None:
+    """Build every allowlisted site's dataset, check the model on sites it never saw, train the pooled model."""
+    from terra.pipelines.multisite import build_all, run_loso, train_pooled
+    build_all()
+    if not skip_loso:
+        run_loso()
+    train_pooled()
+    typer.echo("multi-site models saved under artifacts/models/*/bundle_multisite; evidence in artifacts/multisite")
