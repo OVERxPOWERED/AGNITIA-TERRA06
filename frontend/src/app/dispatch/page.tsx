@@ -7,6 +7,7 @@ import { PageHeader, Panel, PanelHeader, Segmented, Stat, tableCls, tdCls, tdNum
 import { QueryState } from "@/components/ui/states";
 import { useDispatch, useImpact } from "@/hooks/api";
 import { inr, mwh } from "@/lib/format";
+import { useActivePlant } from "@/lib/plant";
 import { useTheme } from "@/lib/theme";
 
 type Strat = "advisor" | "rule" | "none";
@@ -21,6 +22,7 @@ export default function DispatchPage() {
   const [strategy, setStrategy] = useState<Strat>("advisor");
   const d = useDispatch(strategy);
   const impact = useImpact();
+  const ap = useActivePlant();
   const kp = d.data?.kpis;
 
   const option = useMemo(() => {
@@ -81,7 +83,7 @@ export default function DispatchPage() {
           </div>
         </Panel>
         <Panel>
-          <PanelHeader title="What forecast quality is worth" note="The same plant run over the test period with different forecasts, settled against what was actually generated." />
+          <PanelHeader title="What forecast quality is worth" note={`${ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}The same plant run over the test period with different forecasts, settled against what was actually generated.`} />
           <div className="px-2 pb-4 pt-3 sm:px-3">
             <QueryState isLoading={impact.isLoading} error={impact.error} refetch={impact.refetch} height="h-32">
               <div className="overflow-x-auto">

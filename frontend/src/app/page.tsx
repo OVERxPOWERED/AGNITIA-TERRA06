@@ -15,6 +15,7 @@ import { ALERT_LABEL, alertValue, severityTone } from "@/lib/alerts";
 import { buildBriefing, buildChapters, buildDiagnosis } from "@/lib/analysis";
 import { inr, mwh, toIST, toISTTimeOnly } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { useActivePlant } from "@/lib/plant";
 import { useTheme } from "@/lib/theme";
 
 type View = "all" | "hybrid" | "split";
@@ -31,6 +32,7 @@ export default function ControlRoom() {
   const alerts = useAlerts();
   const impact = useImpact();
   const health = useHealth();
+  const ap = useActivePlant();
   const solarEval = useModels("solar", undefined, true);
   const windEval = useModels("wind");
   const [view, setView] = useState<View>("all");
@@ -190,9 +192,9 @@ export default function ControlRoom() {
             {[
               { label: "Dispatch advisor", value: k ? `${mwh(k.backup_mwh)} backup` : "—", note: k ? `${mwh(k.curtail_mwh)} curtailed, planned cost ${inr(k.cost_inr)} (illustrative)` : "" },
               { label: "Battery", value: soc.length ? `${Math.min(...soc).toFixed(0)} to ${Math.max(...soc).toFixed(0)} MWh stored` : "—", note: k ? `${k.battery_throughput_mwh.toFixed(0)} MWh moved through the battery` : "" },
-              { label: "Deviation shield", value: impact.data?.impact.dsm_charges_saved_inr != null ? `${inr(Number(impact.data.impact.dsm_charges_saved_inr))} avoided` : "—", note: "Over the test period, against persistence scheduling. Illustrative rates." },
-              { label: "Solar accuracy", value: solarRow ? `${solarRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: solarRow ? `Daylight hours, test period. Skill ${Math.round(100 * (solarRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * solarRow.picp80)}%.` : "" },
-              { label: "Wind accuracy", value: windRow ? `${windRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: windRow ? `Test period. Skill ${Math.round(100 * (windRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * windRow.picp80)}%.` : "" },
+              { label: "Deviation shield", value: impact.data?.impact.dsm_charges_saved_inr != null ? `${inr(Number(impact.data.impact.dsm_charges_saved_inr))} avoided` : "—", note: `${ap.live ? "Dewas figure. " : ""}Over the test period, against persistence scheduling. Illustrative rates.` },
+              { label: "Solar accuracy", value: solarRow ? `${solarRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: solarRow ? `${ap.live ? "Dewas figure. " : ""}Daylight hours, test period. Skill ${Math.round(100 * (solarRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * solarRow.picp80)}%.` : "" },
+              { label: "Wind accuracy", value: windRow ? `${windRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: windRow ? `${ap.live ? "Dewas figure. " : ""}Test period. Skill ${Math.round(100 * (windRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * windRow.picp80)}%.` : "" },
             ].map((r) => (
               <div key={r.label} className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-x-3 border-b border-line py-3 last:border-0 last:pb-0 first:pt-0">
                 <dt className="text-muted">{r.label}</dt>
@@ -260,10 +262,10 @@ export default function ControlRoom() {
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 rounded-[10px] bg-console px-4 py-2.5 text-[12px] text-console-ink">
         <span className="num">
           <span className="mr-2 rounded bg-white/10 px-1.5 py-0.5">info</span>
-          {health.data?.latest_run ? `Run ${health.data.latest_run}` : "Run not loaded"}
+          {ap.live ? `Live run for ${ap.label}` : health.data?.latest_run ? `Run ${health.data.latest_run}` : "Run not loaded"}
           {hybrid.data ? `, issued ${toIST(hybrid.data.issue_time_utc)}` : ""}. Model: ensemble of physics and LightGBM with calibrated bands.
         </span>
-        <span className="num">{health.data?.mode === "live" ? "Live" : "Replay"} in IST</span>
+        <span className="num">{ap.live || health.data?.mode === "live" ? "Live" : "Replay"} in IST</span>
       </div>
     </div>
   );

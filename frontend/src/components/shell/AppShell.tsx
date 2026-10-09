@@ -2,11 +2,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MapPin } from "lucide-react";
 import { useAlerts, useForecast, useHealth, useLiveUpdates, useSite } from "@/hooks/api";
 import { getApiBaseConfigError } from "@/lib/api/client";
 import type { AlertOut } from "@/lib/api/types";
 import { toIST } from "@/lib/format";
+import { useActivePlant } from "@/lib/plant";
 import { cn } from "@/lib/cn";
 import { Dot, Pill, Spinner } from "@/components/ui/primitives";
 import { fmtDayHM, istMs } from "@/components/charts/series";
@@ -34,6 +35,10 @@ function Clock() {
 /** The status of the API connection, shown as the mode pill. */
 function ModePill() {
   const health = useHealth();
+  const ap = useActivePlant();
+  if (ap.live && !health.isError) {
+    return <Pill tone="good" title="A live forecast on current weather, built for the site shown below."><Dot color="var(--good)" />Live</Pill>;
+  }
   const lastOk = health.dataUpdatedAt ? toIST(new Date(health.dataUpdatedAt).toISOString()) : null;
   // A failed refresh while we still hold an earlier answer is a hiccup (Render cold start, redeploy), not an outage.
   if (health.isError && health.data) {
@@ -71,6 +76,71 @@ function Outline() {
   );
 }
 
+const SETTINGS_PAGES: Record<string, string> = { "/location": "location", "/settings": "plant-settings", "/setup": "plant-setup" };
+/** Pages whose figures come from the Dewas evaluation (held-out test days), not from the selected site. */
+const DEWAS_ONLY = ["/models", "/trust", "/impact", "/deviation", "/assumptions", "/whatif"];
+
+/** Always-visible answer to "which plant am I looking at?" for every tab. */
+function ContextBar() {
+  const ap = useActivePlant();
+  if (!ap.ready || !ap.site) return null;
+  const busy = ap.run.status === "loading";
+  const failed = ap.run.status === "failed";
+  return (
+    <div className="border-t border-line bg-sunken/60">
+      <div className="mx-auto flex min-h-9 max-w-[1360px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 text-[13px] sm:px-6">
+        <MapPin className="h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+        <span className="font-medium text-ink">{ap.label}</span>
+        {ap.label !== `${ap.site.name}, ${ap.site.region}` && <span className="text-muted">{ap.site.name}, {ap.site.region}</span>}
+        {busy ? (
+          <Pill tone="warn"><Spinner className="h-3 w-3" />Building live forecast</Pill>
+        ) : failed ? (
+          <Pill tone="bad">Live forecast failed</Pill>
+        ) : ap.live ? (
+          <Pill tone="good"><Dot color="var(--good)" />Live forecast</Pill>
+        ) : (
+          <Pill tone="accent">Recorded replay</Pill>
+        )}
+        {ap.live && !busy && !ap.site.is_home && <span className="text-[12px] text-warn">Not validated at this site</span>}
+        {ap.live && !busy && ap.site.is_home && ap.customised && <span className="text-[12px] text-warn">Scaled from the plant the models were trained on</span>}
+        <span className="ml-auto flex items-center gap-3 text-[12px]">
+          <Link href="/location" className="text-accent underline underline-offset-2">Change location</Link>
+          <Link href="/settings" className="text-accent underline underline-offset-2">Plant settings</Link>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Notices({ path }: { path: string }) {
+  const ap = useActivePlant();
+  const showSetup = ap.ready && !ap.store.onboarded && !ap.store.dismissed && !path.startsWith("/setup");
+  const dewasOnly = ap.live && DEWAS_ONLY.some((p) => path.startsWith(p));
+  return (
+    <>
+      {showSetup && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-[10px] border border-line bg-surface p-4 text-[13px]">
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-ink">Set up your plant</div>
+            <div className="mt-0.5 text-muted">A few questions about your site, solar, wind, battery and demand make every page about your plant. All optional, about two minutes.</div>
+          </div>
+          <Link href="/setup" className="t-colors inline-flex min-h-9 items-center rounded-lg bg-accent px-3 text-[13px] font-medium text-on-accent hover:opacity-90">Start setup</Link>
+          <button onClick={ap.dismissSetup} className="t-colors rounded-md px-2 py-1.5 text-[13px] text-muted hover:bg-sunken hover:text-ink">Not now</button>
+        </div>
+      )}
+      {dewasOnly && (
+        <div role="note" className="mb-5 flex items-start gap-3 rounded-[10px] border border-warn/40 bg-warn-soft p-4 text-[13px]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+          <div>
+            <div className="font-medium text-ink">These figures are from the Dewas evaluation, not {ap.label}</div>
+            <div className="mt-0.5 text-muted">Accuracy, trust, impact and cost figures were measured on held-out test days at the Dewas plant. The control room, forecast, alerts and dispatch tabs follow your selected location.</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Toast({ alert, onClose }: { alert: AlertOut | null; onClose: () => void }) {
   useEffect(() => {
     if (!alert) return;
@@ -99,8 +169,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useLiveUpdates(onAlert);
 
   const unacked = useMemo(() => (alerts.data ?? []).filter((a) => !a.acknowledged).length, [alerts.data]);
-  const onLocation = path.startsWith("/location");        // opened from the settings menu, so it has no tab
-  const current = onLocation ? { href: "/location", label: "Location", slug: "location" } : (NAV.find((n) => (n.href === "/" ? path === "/" : path.startsWith(n.href))) ?? NAV[0]);
+  const extra = Object.keys(SETTINGS_PAGES).find((p) => path.startsWith(p));
+  const current = extra ? { href: extra, label: SETTINGS_PAGES[extra], slug: SETTINGS_PAGES[extra] } : (NAV.find((n) => (n.href === "/" ? path === "/" : path.startsWith(n.href))) ?? NAV[0]);
   const configError = getApiBaseConfigError();
   const s = site.data;
 
@@ -148,6 +218,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             })}
           </div>
         </nav>
+        <ContextBar />
       </header>
 
       <main id="main" className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-6 sm:px-6">
@@ -160,6 +231,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
+        <Notices path={path} />
         {children}
       </main>
 

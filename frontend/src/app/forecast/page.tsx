@@ -7,6 +7,7 @@ import { GRID_LEFT, GRID_RIGHT, bandSeries, istMs, lineSeries, timeChart, type B
 import { PageHeader, Panel, PanelHeader, Segmented } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
 import { useForecast, useHistory } from "@/hooks/api";
+import { useActivePlant } from "@/lib/plant";
 import { useTheme } from "@/lib/theme";
 
 type Src = "solar" | "wind";
@@ -18,6 +19,7 @@ export default function ForecastPage() {
   const { colors: c } = useTheme();
   const [source, setSource] = useState<Src>("solar");
   const [model, setModel] = useState<ModelKey>("ensemble");
+  const ap = useActivePlant();
   const hist = useHistory(source, model);
   const fc = useForecast(source);
   const color = source === "solar" ? c.solar : c.wind;
@@ -53,7 +55,7 @@ export default function ForecastPage() {
       />
       <div className="space-y-6">
         <Panel>
-          <PanelHeader title="Forecast against actual generation" note="Held-out test days, forecast issued the morning before (05:30 IST). Drag the bar below the chart to zoom." />
+          <PanelHeader title="Forecast against actual generation" note={`${ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}Held-out test days, forecast issued the morning before (05:30 IST). Drag the bar below the chart to zoom.`} />
           <div className="px-2 pb-3 pt-2 sm:px-3">
             <QueryState isLoading={hist.isLoading} error={hist.error} refetch={hist.refetch} empty={!hist.data?.points.length} height="h-[380px]">
               {histOption && <EChart option={histOption} height={380} ariaLabel={`${MODEL_LABELS[model]} forecast against actual ${source} generation`} />}
@@ -61,7 +63,7 @@ export default function ForecastPage() {
           </div>
         </Panel>
         <Panel>
-          <PanelHeader title={`${name}: next 48 hours`} note="Calibrated ensemble with its 80% range." />
+          <PanelHeader title={`${name}: next 48 hours`} note={`${ap.live ? ap.label + ". " : ""}Calibrated ensemble with its 80% range.`} />
           <div className="px-2 pb-3 pt-2 sm:px-3">
             <QueryState isLoading={fc.isLoading} error={fc.error} refetch={fc.refetch} height="h-[320px]">
               {nextOption && <EChart option={nextOption} height={320} ariaLabel={`${source} forecast for the next 48 hours`} />}

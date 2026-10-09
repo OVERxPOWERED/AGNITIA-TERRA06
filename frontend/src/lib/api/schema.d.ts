@@ -325,12 +325,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Result */
-        get: operations["result_locations__location_id__forecast_get"];
+        get?: never;
         put?: never;
         /**
          * Start
-         * @description Start (or reuse, if under 30 minutes old) a live forecast for one allowlisted site.
+         * @description Start (or reuse, if under 30 minutes old) a live forecast for one allowlisted site, with the caller's plant profile.
          */
         post: operations["start_locations__location_id__forecast_post"];
         delete?: never;
@@ -350,6 +349,63 @@ export interface paths {
         get: operations["status_locations_jobs__job_id__get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/jobs/{job_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Result */
+        get: operations["result_locations_jobs__job_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profile/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profile Schema
+         * @description Fields, steps and defaults that drive the onboarding wizard and the Settings page.
+         */
+        get: operations["profile_schema_profile_schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/profile/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Profile Check
+         * @description Validate a plant profile and show what it resolves to. Nothing is stored on the server.
+         */
+        post: operations["profile_check_profile_check_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -623,6 +679,14 @@ export interface components {
             /** Dispatch */
             dispatch: components["schemas"]["DispatchPoint"][];
             kpis: components["schemas"]["Kpis"];
+            /** Dispatch By Strategy */
+            dispatch_by_strategy: {
+                [key: string]: components["schemas"]["DispatchPoint"][];
+            };
+            /** Kpis By Strategy */
+            kpis_by_strategy: {
+                [key: string]: components["schemas"]["Kpis"];
+            };
             /** Alerts */
             alerts: components["schemas"]["AlertOut"][];
             /** Validated Here */
@@ -631,6 +695,7 @@ export interface components {
             caveat: string;
             /** Attribution */
             attribution: string;
+            plant: components["schemas"]["PlantSummary"];
         };
         /** ModelRow */
         ModelRow: {
@@ -673,6 +738,53 @@ export interface components {
              * @default false
              */
             daylight_only: boolean;
+        };
+        /** PlantSummary */
+        PlantSummary: {
+            /** Plant Name */
+            plant_name: string;
+            /** Location */
+            location: string;
+            /** Solar Ac Mw */
+            solar_ac_mw: number;
+            /** Wind Mw */
+            wind_mw: number;
+            /** Battery Mw */
+            battery_mw: number;
+            /** Battery Mwh */
+            battery_mwh: number;
+            /** Demand Peak Mw */
+            demand_peak_mw: number;
+            /** Solar Scale */
+            solar_scale: number;
+            /** Wind Scale */
+            wind_scale: number;
+            /** Entered */
+            entered: string[];
+            /** Customised */
+            customised: boolean;
+        };
+        /** ProfileBody */
+        ProfileBody: {
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: string | number | null;
+            };
+        };
+        /** ProfileCheck */
+        ProfileCheck: {
+            /** Clean */
+            clean: {
+                [key: string]: string | number;
+            };
+            /** Errors */
+            errors: {
+                [key: string]: string;
+            };
+            summary?: components["schemas"]["PlantSummary"] | null;
         };
         /** SiteInfo */
         SiteInfo: {
@@ -1241,37 +1353,6 @@ export interface operations {
             };
         };
     };
-    result_locations__location_id__forecast_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                location_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LocationResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     start_locations__location_id__forecast_post: {
         parameters: {
             query?: {
@@ -1283,7 +1364,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ProfileBody"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1323,6 +1408,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LocationJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    result_locations_jobs__job_id__result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    profile_schema_profile_schema_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    profile_check_profile_check_post: {
+        parameters: {
+            query?: {
+                location_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCheck"];
                 };
             };
             /** @description Validation Error */

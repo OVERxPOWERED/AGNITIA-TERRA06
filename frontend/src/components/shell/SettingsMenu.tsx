@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { MapPin, Monitor, Moon, Settings, Sun } from "lucide-react";
+import { Factory, MapPin, Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 
@@ -41,7 +41,7 @@ export default function SettingsMenu() {
         <Settings className="h-4 w-4" aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label="Settings" className="absolute right-0 z-50 mt-2 w-48 rounded-[10px] border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgb(0_0_0/0.14)]">
+        <div role="menu" aria-label="Settings" className="absolute right-0 z-50 mt-2 w-52 rounded-[10px] border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgb(0_0_0/0.14)]">
           <div className="px-2 pb-1 pt-1 text-[12px] text-muted">Colour theme</div>
           {OPTIONS.map(({ value, label, Icon }) => (
             <button
@@ -64,6 +64,15 @@ export default function SettingsMenu() {
           >
             <MapPin className="h-4 w-4" aria-hidden />
             Location
+          </Link>
+          <Link
+            href="/settings"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="t-colors flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] text-ink hover:bg-sunken"
+          >
+            <Factory className="h-4 w-4" aria-hidden />
+            Plant settings
           </Link>
         </div>
       )}
