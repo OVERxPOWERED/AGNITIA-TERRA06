@@ -192,10 +192,10 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 - [x] T4.2.1 Confirm quantile behaviour — 📝 ✅ 2026-10-08
 
 ### 4.3 Chronos-2 zero-shot with covariates
-- [ ] T4.3.1 `models/chronos2.py` — 🧩 Spec code [-] (Skipped: requires GPU/Kaggle)
-- [ ] T4.3.2 Build and upload the Kaggle bundle — 📝 [-]
-- [ ] T4.3.3 Kaggle inference notebook — 🧩 Spec code [-]
-- [ ] T4.3.4 Bring results back — 📝 [-]
+- [x] T4.3.1 `models/chronos2.py` — 🧩 Spec code ✅ 2026-10-09 (cross-issue fill leak fixed + offline leakage tests)
+- [x] T4.3.2 Build and upload the Kaggle bundle — 📝 ✅ 2026-10-09 (private dataset, 5 MB)
+- [x] T4.3.3 Kaggle inference notebook — 🧩 Spec code ✅ 2026-10-09 (`ml/kaggle/chronos2_infer.ipynb`, Kaggle T4, ~3 min)
+- [x] T4.3.4 Bring results back — 📝 ✅ 2026-10-09 (100 % key coverage; comparison-only benchmark, not an ensemble member: ADR-016)
 
 ### 4.4 Chronos-2 LoRA fine-tune on Kaggle
 - [ ] T4.4.1 Fine-tune notebook — 🧩 Spec code [-] (Skipped: requires GPU/Kaggle)
@@ -203,7 +203,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 - [ ] T4.4.3 If fine-tuning is skipped — 📝 ✅ 2026-10-08
 
 ### 4.5 Time-boxed GBM tuning
-- [ ] T4.5.1 Tuning script — ✅ Tested [-] (Skipped)
+- [x] T4.5.1 Tuning script — ✅ Tested ✅ 2026-10-09 (Optuna, temporal hold-out in train, 40 min/source, adopted for both sources; `config/gbm_params.yaml`, ADR-015)
 
 ### 4.6 Ensemble
 - [x] T4.6.1 `models/ensemble.py` — ✅ Tested ✅ 2026-10-08
@@ -432,6 +432,7 @@ Legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[-]` skipped ·
 
 | Date | Task / subphase | Note |
 |---|---|---|
+| 2026-10-09 | 4.3 / 4.5 / deploy | Chronos-2 zero-shot run on a Kaggle T4 (comparison-only benchmark; LoRA fine-tune 4.4 stays skipped); GBM tuned and adopted for both sources (solar clearly better on test, wind slightly; wind ensemble slightly worse because its blend weights were fitted on the dry winter validation window); deployment prepared (Neon + Render + Vercel + pinger + release-asset bundle, docs/deployment.md) but NOT deployed |
 | 2026-10-09 | QA-FIX-1 | Real-browser QA of all 10 routes: fixed Control Room retry/zero-KPI placeholders, 404 images, mobile overflow/legend, page titles, aria-current, P10–P90 tooltip, numeric LOW_CONFIDENCE text; hybrid trust = generation-weighted mean (ADR). Known limit: trust scale is relative to the dry validation window, so most hours of the monsoon-adjacent default replay day rank "low" (avg ~20/100) |
 | 2026-10-09 | docs | Narrative docs (README, report, business case, pitch, demo script, architecture, model card) reconciled to harness outputs; stale synthetic numbers (e.g. solar skill 71 %) removed |
 | 2026-10-09 | alerts | Alert thresholds now data-driven from the training split (P10/P25 low, P90 high, P95 ramp; ADR-010); HIGH/RAMP previously never fired; alert precision/recall added to the evaluation; daylight-only solar coverage added to API/UI |
