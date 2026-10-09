@@ -13,7 +13,7 @@ htmlcov/
 node_modules/
 .next/
 out/
-frontend/src/lib/api/schema.d.ts
+# frontend/src/lib/api/schema.d.ts is COMMITTED on purpose: Vercel builds from git and has no Python backend to generate it. Regenerate with `make types` whenever the API schema changes.
 # Env & secrets
 .env
 .env.*
