@@ -243,6 +243,13 @@ class ProfileCheck(BaseModel):
     summary: PlantSummary | None = None
 
 
+class BlockPoint(BaseModel):
+    block_end_utc: str
+    solar: float
+    wind: float
+    hybrid: float
+
+
 class LocationResult(BaseModel):
     location: LocationInfo
     issue_time_utc: str
@@ -262,6 +269,8 @@ class LocationResult(BaseModel):
     second_opinions: list[WeatherModelSeries] = []
     export_curtailed_mw: list[float] = []
     export_curtailed_mwh: float = 0.0
+    dsm_schedule: list[BlockPoint] = []
+    expected_blocks: list[BlockPoint] = []
 
 
 # ---- accounts ----
@@ -306,3 +315,9 @@ class CalibrationIn(BaseModel):
     unit: Literal["MW", "kW"] = "MW"
     values: dict[str, Any] = {}
     location_id: str | None = None
+
+
+class SchedulePut(BaseModel):
+    date: str                                    # IST date YYYY-MM-DD
+    blocks: list[list[Any]]                      # [[block_end_utc, mw], ...]
+    source: Literal["hybrid"] = "hybrid"

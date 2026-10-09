@@ -18,6 +18,19 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     db_url: str = "sqlite:///./terra.db"
     version: str = "0.1.0"
+    public_url: str = "http://localhost:3000"            # link put in alert messages
+    # WhatsApp alerts: provider "none" (log only), "meta" (WhatsApp Cloud API) or "twilio"
+    whatsapp_provider: str = "none"
+    meta_wa_token: str = ""
+    meta_wa_phone_id: str = ""
+    meta_wa_template: str = ""                         # approved template name; empty = free-form text (24 h window)
+    meta_wa_template_lang: str = "en"
+    twilio_sid: str = ""
+    twilio_token: str = ""
+    twilio_whatsapp_from: str = "whatsapp:+14155238886"  # Twilio sandbox number by default
+    monitor_minutes: int = 30                          # how often signed-in plants with WhatsApp on are checked
+    monitor_enabled: bool = True
+    max_whatsapp_per_day: int = 10
 
     @property
     def cors_list(self) -> list[str]:

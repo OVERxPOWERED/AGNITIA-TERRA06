@@ -22,10 +22,11 @@ from terra.locations import Location, get_location, load_locations
 from terra.logs import get_logger
 from terra.paths import ARTIFACTS
 from terra.pipelines.forecast import run_forecast
-from terra.profile import apply_profile, defaults, schema, validate
+from terra.profile import NAME_ONLY, apply_profile, defaults, schema, validate
 
 from app.schemas.api import (
     AlertOut,
+    BlockPoint,
     DispatchPoint,
     ForecastPoint,
     Kpis,
@@ -71,7 +72,7 @@ def profile_schema() -> dict:
 def _summary(loc: Location, clean: dict, calibration: dict | None = None) -> PlantSummary:
     a = apply_profile(load_config(), loc, clean, calibration)
     base = defaults(load_config(), _home())
-    changed = [k for k, v in clean.items() if k in base and v != base[k] and k not in ("plant_name", "operator", "location_id")]
+    changed = [k for k, v in clean.items() if k in base and v != base[k] and k not in NAME_ONLY]
     return PlantSummary(**{k: v for k, v in a.summary.items() if k != "location"}, location=loc.name,
                         entered=sorted(clean), customised=bool(changed) or bool(a.calibration))
 
@@ -128,6 +129,13 @@ def _run(job: dict) -> None:
                            progress=lambda s: job.__setitem__("step", s), model_cfg=applied.model_cfg,
                            adjust=applied, second_opinions=True, api_keys=job["keys"])
         job["keys"] = {}                                    # provider keys are used once and dropped
+        if job.get("user_id"):                              # signed in: check against the schedule they submitted
+            from app.services.notify import deviation_alerts_for_run
+            extra = deviation_alerts_for_run(job["user_id"], out, applied.summary["solar_ac_mw"] + applied.summary["wind_mw"],
+                                             applied.summary["plant_name"])
+            if extra:
+                al = json.loads((out / "alerts.json").read_text())
+                (out / "alerts.json").write_text(json.dumps(extra + al, indent=2))
         job.update(status="done", step="done", finished=_now(), run_dir=out)
     except Exception as exc:
         log.exception("location forecast failed for %s", loc.id)
@@ -135,7 +143,7 @@ def _run(job: dict) -> None:
 
 
 def submit(loc_id: str, values: dict | None = None, force: bool = False, calibration: dict | None = None,
-           keys: dict | None = None) -> LocationJob | ProfileCheck | None:
+           keys: dict | None = None, user_id: str | None = None) -> LocationJob | ProfileCheck | None:
     loc = get_location(loc_id)
     if loc is None:
         return None
@@ -145,13 +153,13 @@ def submit(loc_id: str, values: dict | None = None, force: bool = False, calibra
     clean = {k: v for k, v in chk.clean.items() if k != "location_id"}
     cal = clean_calibration(calibration)
     keys = {k: str(v).strip() for k, v in (keys or {}).items() if k in ("solcast", "tomorrow") and str(v).strip()}
-    key = _key(clean, cal, keys)
+    key = _key(clean, cal, keys) + (f"-{user_id[:8]}" if user_id else "")
     with _lock:
         j = None if force else _fresh(loc_id, key)
         if j is not None:
             return _view(j, reused=True)
         j = {"id": uuid.uuid4().hex[:12], "loc": loc_id, "key": key, "clean": clean, "calibration": cal, "keys": keys,
-             "status": "queued",
+             "user_id": user_id, "status": "queued",
              "step": "queued", "started": _now()}
         _jobs[j["id"]] = j
         _pool.submit(_run, j)
@@ -168,6 +176,20 @@ def _points(df: pd.DataFrame, source: str) -> list[ForecastPoint]:
     d["target_time_utc"] = d["target_time_utc"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
     cols = ["target_time_utc", "lead_h", "q05", "q10", "q50", "q90", "q95", "trust_score", "trust_level", "trust_reason"]
     return [ForecastPoint(**r) for r in d[cols].to_dict(orient="records")]
+
+
+def _blocks(p) -> list[BlockPoint]:
+    if not p.exists():
+        return []
+    b = pd.read_parquet(p)
+    t = pd.to_datetime(b["block_end_utc"], utc=True).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return [BlockPoint(block_end_utc=x, solar=round(float(s), 3), wind=round(float(w), 3), hybrid=round(float(h), 3))
+            for x, s, w, h in zip(t, b.get("solar", 0 * b["hybrid"]), b.get("wind", 0 * b["hybrid"]), b["hybrid"])]
+
+
+def run_dir(job_id: str):
+    j = _jobs.get(job_id)
+    return (j["run_dir"], j) if j and j["status"] == "done" else (None, None)
 
 
 def result(job_id: str) -> LocationResult | None:
@@ -214,4 +236,5 @@ def result(job_id: str) -> LocationResult | None:
         solar=_points(fc, "solar"), wind=_points(fc, "wind"), hybrid=_points(fc, "hybrid"),
         dispatch=by["advisor"], kpis=kall["advisor"], dispatch_by_strategy=by, kpis_by_strategy=kall, alerts=alerts, validated_here=home and not plant.customised, caveat=caveat,
         attribution=ATTRIBUTION, plant=plant, second_opinions=second, export_curtailed_mw=curtailed,
-        export_curtailed_mwh=round(float(sum(curtailed)), 2))
+        export_curtailed_mwh=round(float(sum(curtailed)), 2), dsm_schedule=_blocks(d / "dsm_schedule.parquet"),
+        expected_blocks=_blocks(d / "blocks_p50.parquet"))

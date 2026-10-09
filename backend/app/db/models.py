@@ -207,3 +207,26 @@ class PlantRow(SQLModel, table=True):
     calibration_json: str = "{}"                      # factors + report from the measured-history upload
     version: int = 0
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ScheduleRow(SQLModel, table=True):
+    """The schedule the operator submitted to the load despatch centre for one IST day (15-minute blocks)."""
+    id: str = Field(primary_key=True)                 # f"{user_id}|{date}|{source}"
+    user_id: str = Field(index=True)
+    date: str                                         # IST date YYYY-MM-DD
+    source: str = "hybrid"
+    blocks_json: str                                  # [[block_end_utc, mw], ...]
+    revision: int = 0
+    submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class NotificationRow(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    user_id: str = Field(index=True)
+    alert_key: str = Field(index=True)
+    channel: str = "whatsapp"
+    to: str = ""
+    status: str = ""                                  # sent | failed | logged
+    detail: str = ""
+    message: str = ""
+    sent_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

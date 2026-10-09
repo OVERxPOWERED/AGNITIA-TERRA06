@@ -57,18 +57,24 @@ def _predict(bundle, rows: pd.DataFrame, scale: float) -> pd.DataFrame:
 
 
 def run_whatif(cfg: TerraConfig, rows: dict[str, pd.DataFrame], bundles: dict, engines: dict,
-               demand: np.ndarray, sc: Scenario) -> dict:
-    new_solar = cfg.solar.model_copy(update={"ac_capacity_mw": sc.solar_ac_mw or cfg.solar.ac_capacity_mw,
-                                             "dc_capacity_mw": (sc.solar_ac_mw or cfg.solar.ac_capacity_mw)
-                                             * cfg.solar.dc_capacity_mw / cfg.solar.ac_capacity_mw})
-    new_wind = cfg.wind.model_copy(update={"n_turbines": sc.wind_turbines or cfg.wind.n_turbines})
-    new_bat = cfg.battery.model_copy(update={"power_mw": cfg.battery.power_mw if sc.battery_mw is None else sc.battery_mw,
-                                             "energy_mwh": cfg.battery.energy_mwh if sc.battery_mwh is None
-                                             else sc.battery_mwh})
+               demand: np.ndarray, sc: Scenario, plant_factor: dict[str, np.ndarray] | None = None,
+               plant_cfg: TerraConfig | None = None) -> dict:
+    """`cfg` is the plant the rows were framed for (the trained plant). For an operator's plant pass `plant_cfg`
+    and the hourly `plant_factor` the live run used (physics ratio x availability x calibration); scenario
+    capacities are then read as the operator's capacities and applied as ratios."""
+    pc = plant_cfg or cfg
+    r_solar = (sc.solar_ac_mw or pc.solar.ac_capacity_mw) / pc.solar.ac_capacity_mw
+    r_wind = (sc.wind_turbines or pc.wind.n_turbines) / pc.wind.n_turbines
+    new_solar = cfg.solar.model_copy(update={"ac_capacity_mw": cfg.solar.ac_capacity_mw * r_solar,
+                                             "dc_capacity_mw": cfg.solar.dc_capacity_mw * r_solar})
+    new_wind = cfg.wind.model_copy(update={"n_turbines": max(1, round(cfg.wind.n_turbines * r_wind))})
+    new_bat = pc.battery.model_copy(update={"power_mw": pc.battery.power_mw if sc.battery_mw is None else sc.battery_mw,
+                                            "energy_mwh": pc.battery.energy_mwh if sc.battery_mwh is None
+                                            else sc.battery_mwh})
     result = {}
-    for label, (scn, sol_cfg, wind_cfg, bat) in {
-        "before": (Scenario(), cfg.solar, cfg.wind, cfg.battery),
-        "after": (sc, new_solar, new_wind, new_bat),
+    for label, (scn, sol_cfg, wind_cfg, bat, rs, rw) in {
+        "before": (Scenario(), cfg.solar, cfg.wind, pc.battery, 1.0, 1.0),
+        "after": (sc, new_solar, new_wind, new_bat, r_solar, r_wind),
     }.items():
         q = {}
         for s in ("solar", "wind"):
@@ -79,10 +85,12 @@ def run_whatif(cfg: TerraConfig, rows: dict[str, pd.DataFrame], bundles: dict, e
             old = cfg.capacity_mw(s)
             new = sol_cfg.ac_capacity_mw if s == "solar" else wind_cfg.capacity_mw
             q[s] = _predict(bundles[s], r, new / old)
+            if plant_factor is not None:
+                q[s] = q[s].mul(plant_factor[s], axis=0)
         is_day = rows["solar"]["cal_is_day"].to_numpy()
         hyb = hybrid_forecast(q["solar"], q["wind"], is_day, engines["rho_by_day"],
-                              sol_cfg.ac_capacity_mw, wind_cfg.capacity_mw)
-        disp = plan(hyb["q50"].to_numpy(), demand, bat, cfg.costs, hyb["q10"].to_numpy())
+                              pc.capacity_mw("solar") * rs, pc.capacity_mw("wind") * rw)
+        disp = plan(hyb["q50"].to_numpy(), demand, bat, pc.costs, hyb["q10"].to_numpy())
         result[label] = {
             "hybrid": hyb.assign(target_time_utc=rows["solar"]["target_time_utc"].to_numpy()),
             "energy_mwh_p50": float(hyb["q50"].sum()),

@@ -81,3 +81,19 @@ def test_weather_disagreement_alert():
         rows.append(pd.DataFrame({"target_time_utc": t, "model": m, "hybrid_mw": np.array(v, float)}))
     al = disagreement_alerts(pd.concat(rows), 90.0, 0.25, t[0])
     assert len(al) == 1 and al[0].type == "WEATHER_DISAGREEMENT" and al[0].magnitude_mw == 35
+
+
+def test_deviation_watch_flags_sustained_breach_only():
+    import pandas as pd
+
+    from terra.engines.deviation_watch import deviation_risk_alerts
+
+    t0 = pd.Timestamp("2026-05-01 00:00", tz="UTC")
+    idx = pd.date_range(t0 + pd.Timedelta(minutes=15), periods=24, freq="15min")
+    committed = pd.Series(40.0, index=idx)
+    expected = committed.copy()
+    expected.iloc[4:10] = 52.0          # 6 blocks, 12 MW on 90 MW = 13% > 5% band
+    expected.iloc[15:17] = 60.0         # 2 blocks only: too short to act on
+    al = deviation_risk_alerts(expected, committed, 90.0, t0)
+    assert len(al) == 1 and al[0].type == "DEVIATION_RISK" and al[0].severity == "critical"
+    assert "Revise the schedule" in al[0].message and "13%" in al[0].message

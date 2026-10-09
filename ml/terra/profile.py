@@ -6,6 +6,7 @@ so there is a single source of truth. Every field says what it *does*:
   forecast  - changes the forecast (through the physics model, equipment availability or the export limit)
   plan      - changes battery, backup, demand or alert planning
   display   - the name shown on every page
+  notify    - who is told about alerts, and how
   recorded  - stored and shown only (nothing in the physics depends on it)
 Values the operator never entered fall back to the base config and are labelled "assumed" in the UI.
 
@@ -45,6 +46,7 @@ STEPS: list[dict] = [
 
 SOURCES = [{"value": "hybrid", "label": "Solar and wind"}, {"value": "solar", "label": "Solar only"},
            {"value": "wind", "label": "Wind only"}]
+WHATSAPP = [{"value": "off", "label": "Off"}, {"value": "critical", "label": "Critical alerts only"}]
 TRACKING = [{"value": "fixed", "label": "Fixed tilt"}, {"value": "single_axis", "label": "Single-axis tracker (east-west)"}]
 
 
@@ -69,7 +71,7 @@ class Field:
     key: str
     step: str
     label: str
-    kind: str                       # text | number | select | site | windows
+    kind: str                       # text | number | select | site | windows | phone
     effect: str                     # forecast | plan | display | recorded
     help: str
     unit: str = ""
@@ -120,9 +122,12 @@ FIELDS: list[Field] = [
 
     Field("demand_peak_mw", "demand", "Peak demand to serve", "number", "plan", "The load profile scales to this peak.", "MW", 1, 1000, 1, ("demand", "peak_mw")),
     Field("low_trust_score", "alerts", "Low-confidence alert below", "number", "plan", "Raise an alert when an hour's trust score drops under this (0 to 100).", "score", 0, 100, 1, ("alerts", "low_trust_score")),
+    Field("whatsapp_alerts", "alerts", "WhatsApp alerts", "select", "notify", "Critical alerts and schedule-revision warnings sent to the number below. Needs a signed-in account so the server can watch the plant while the dashboard is closed.", default="off", options=tuple(WHATSAPP)),
+    Field("whatsapp_number", "alerts", "WhatsApp number", "phone", "notify", "With country code, for example +919876543210."),
 ]
 BY_KEY = {f.key: f for f in FIELDS}
-NAME_ONLY = {"plant_name", "operator", "location_id"}
+NAME_ONLY = {"plant_name", "operator", "location_id", "whatsapp_alerts", "whatsapp_number"}
+PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
 def _get(cfg: TerraConfig, path: tuple[str, ...]):
@@ -213,6 +218,12 @@ def validate(values: dict, cfg: TerraConfig, home_id: str, valid_locations: set[
             clean[k] = v
         elif f.kind == "windows":
             clean[k] = v                                  # checked below, once counts are known
+        elif f.kind == "phone":
+            num = re.sub(r"[\s\-()]", "", str(v))
+            if not PHONE_RE.match(num):
+                errors[k] = "Use the international format with country code, for example +919876543210."
+                continue
+            clean[k] = num
         else:
             clean[k] = str(v).strip()[:80]
     eff = {**defaults(cfg, home_id), **clean}
@@ -228,6 +239,8 @@ def validate(values: dict, cfg: TerraConfig, home_id: str, valid_locations: set[
         errors["inverters_out"] = "More inverters out than installed."
     if eff["turbines_out"] > eff["wind_turbines"]:
         errors["turbines_out"] = "More turbines out than installed."
+    if eff.get("whatsapp_alerts") == "critical" and not clean.get("whatsapp_number"):
+        errors["whatsapp_number"] = "Add the number that should receive the alerts."
     if "maintenance" in clean:
         wins, err = _clean_windows(clean["maintenance"], eff)
         if err:

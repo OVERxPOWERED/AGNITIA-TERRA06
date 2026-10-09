@@ -47,9 +47,20 @@ class ForecastJob:
             if loop:
                 loop.call_soon_threadsafe(q.put_nowait, event)
 
+    def monitor(self) -> None:
+        try:
+            from app.services.notify import monitor_once
+            monitor_once()
+        except Exception:
+            log.exception("plant monitor failed")
+
     def start(self) -> None:
         self.scheduler.add_job(self.tick, "interval", minutes=self.settings.schedule_minutes,
                                next_run_time=pd.Timestamp.now(tz="UTC").to_pydatetime())
+        if self.settings.monitor_enabled:
+            self.scheduler.add_job(self.monitor, "interval", minutes=self.settings.monitor_minutes,
+                                   next_run_time=(pd.Timestamp.now(tz="UTC") + pd.Timedelta(minutes=2)).to_pydatetime(),
+                                   max_instances=1, coalesce=True)
         self.scheduler.start()
 
     def stop(self) -> None:

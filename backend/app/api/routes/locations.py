@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
+from app.db.models import UserRow
 from app.schemas.api import LocationInfo, LocationJob, LocationResult, ProfileBody, ProfileCheck
+from app.services import auth
 from app.services import locations as svc
 
 router = APIRouter(tags=["locations"])
@@ -16,10 +20,12 @@ def locations() -> list[LocationInfo]:
 
 
 @router.post("/locations/{location_id}/forecast", response_model=LocationJob)
-def start(location_id: str, body: ProfileBody | None = None, force: bool = False):
+def start(location_id: str, user: Annotated[UserRow | None, Depends(auth.optional_user)],
+          body: ProfileBody | None = None, force: bool = False):
     """Start (or reuse, if under 30 minutes old) a live forecast for one allowlisted site, with the caller's plant profile."""
     out = svc.submit(location_id, dict(body.values) if body else {}, force,
-                     calibration=body.calibration if body else None, keys=body.keys if body else None)
+                     calibration=body.calibration if body else None, keys=body.keys if body else None,
+                     user_id=user.id if user else None)
     if out is None:
         raise HTTPException(404, f"unknown location {location_id!r}")
     if isinstance(out, ProfileCheck):

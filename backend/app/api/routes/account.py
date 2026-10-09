@@ -9,8 +9,8 @@ from terra.config import load_config
 from terra.locations import get_location
 
 from app.db.models import UserRow
-from app.schemas.api import AuthIn, AuthOut, CalibrationIn, PlantIn, PlantStored, UserOut
-from app.services import auth
+from app.schemas.api import AuthIn, AuthOut, CalibrationIn, PlantIn, PlantStored, SchedulePut, UserOut
+from app.services import auth, notify
 from app.services import locations as loc_svc
 
 router = APIRouter(tags=["account"])
@@ -53,13 +53,15 @@ def get_plant(user: CurrentUser) -> dict:
 
 @router.put("/me/plant", response_model=PlantStored)
 def put_plant(body: PlantIn, user: CurrentUser) -> dict:
-    if body.values is not None:
-        chk = loc_svc.check_profile(body.values, body.site_id)
+    values = body.values
+    if values is not None:
+        chk = loc_svc.check_profile(values, body.site_id)
         if chk.errors:
             raise HTTPException(422, "; ".join(f"{k}: {v}" for k, v in chk.errors.items()))
+        values = chk.clean                                  # stored normalised (numbers, phone format)
     if body.site_id is not None and get_location(body.site_id) is None:
         raise HTTPException(422, "Unknown site.")
-    return auth.save_plant(user, values=body.values, site_id=body.site_id, live_home=body.live_home,
+    return auth.save_plant(user, values=values, site_id=body.site_id, live_home=body.live_home,
                            calibration=body.calibration)
 
 
@@ -78,8 +80,52 @@ async def calibration(body: CalibrationIn) -> dict:
     loc = get_location(body.location_id or chk.clean.get("location_id") or loc_svc._home())
     applied = apply_profile(load_config(), loc, {k: v for k, v in chk.clean.items() if k != "location_id"})
     try:
-        report = await run_in_threadpool(run, body.csv, applied.user_cfg, body.timezone, body.stamp, body.unit)
+        report = await run_in_threadpool(run, body.csv, applied, body.timezone, body.stamp, body.unit)
     except UploadError as exc:
         raise HTTPException(422, str(exc)) from exc
     report["location_id"] = loc.id
     return report
+
+
+# ---------- WhatsApp alerts and submitted schedules ----------
+@router.get("/notify/status")
+def notify_status() -> dict:
+    """Which WhatsApp provider the server is configured with (no secrets)."""
+    return notify.provider_status()
+
+
+@router.post("/me/notify/test")
+def notify_test(user: CurrentUser) -> dict:
+    p = auth.get_plant(user) or {}
+    num = (p.get("values") or {}).get("whatsapp_number")
+    if not num:
+        raise HTTPException(422, "Add a WhatsApp number in Plant settings and save first.")
+    name = (p.get("values") or {}).get("plant_name") or "your plant"
+    text = f"Vidyut test message for {name}. Critical alerts for this plant will arrive on this number."
+    status, detail = notify.send_whatsapp(num, text, [name, "Test message: alerts are set up.", "now"])
+    notify.record(user.id, f"TEST|{status}", num, status, detail, text)
+    return {"status": status, "detail": detail}
+
+
+@router.post("/me/notify/check")
+async def notify_check(user: CurrentUser) -> dict:
+    """Run the plant monitor now for this user (the server also runs it on a schedule)."""
+    return await run_in_threadpool(notify.monitor_once, user.id)
+
+
+@router.get("/me/notifications")
+def notifications(user: CurrentUser) -> list[dict]:
+    return notify.recent(user.id)
+
+
+@router.get("/me/schedule")
+def get_schedule(date: str, user: CurrentUser) -> dict:
+    return notify.get_schedule(user.id, date) or {}
+
+
+@router.put("/me/schedule")
+def put_schedule(body: SchedulePut, user: CurrentUser) -> dict:
+    """Record the schedule submitted to the load despatch centre (a re-submit counts as a revision)."""
+    if not 1 <= len(body.blocks) <= 200:
+        raise HTTPException(422, "A day has 96 blocks of 15 minutes.")
+    return notify.put_schedule(user.id, body.date, body.blocks, body.source)

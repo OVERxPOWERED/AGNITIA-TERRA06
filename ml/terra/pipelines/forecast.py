@@ -145,6 +145,7 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         df["trust_reason"] = tm.explain(feats)
         for m, mq in members.items():
             df[f"{m}_q50"] = mq["q50"].to_numpy()
+        df["plant_factor"] = k
         df["source"] = s
         per_source[s] = df
         rows.to_parquet(out / f"rows_{s}.parquet")
@@ -210,8 +211,18 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         sched[s] = downscale_solar(hourly, cfg.site, cap) if s == "solar" else downscale_wind(hourly, cap)
     if sched:
         sdf = pd.DataFrame(sched)
-        sdf["hybrid"] = sdf.sum(axis=1)
+        sdf["hybrid"] = sdf.sum(axis=1) if limit is None else sdf.sum(axis=1).clip(upper=limit)
         sdf.rename_axis("block_end_utc").reset_index().to_parquet(out / "dsm_schedule.parquet")
+
+    # expected output per 15-minute block over the whole horizon (P50), for the deviation watch
+    blocks = {}
+    for s, df in per_source.items():
+        hourly = pd.Series(df["q50"].to_numpy(), index=pd.DatetimeIndex(df["target_time_utc"]))
+        cap = cap_u[s]
+        blocks[s] = downscale_solar(hourly, cfg.site, cap) if s == "solar" else downscale_wind(hourly, cap)
+    bdf = pd.DataFrame(blocks)
+    bdf["hybrid"] = bdf.sum(axis=1) if limit is None else bdf.sum(axis=1).clip(upper=limit)
+    bdf.rename_axis("block_end_utc").reset_index().to_parquet(out / "blocks_p50.parquet")
 
     if second_opinions and mode == "live":
         from terra.data.weather_models import disagreement_alerts

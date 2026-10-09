@@ -68,3 +68,23 @@ def test_plant_is_stored_per_user(client):
 def test_calibration_rejects_bad_files(client):
     r = client.post("/calibration", json={"csv": "a,b\n1,2\n"})
     assert r.status_code == 422 and "timestamp" in r.json()["detail"].lower()
+
+
+def test_whatsapp_and_schedule_endpoints(client):
+    tok = client.post("/auth/signup", json={"email": _email(), "password": "secret123"}).json()["token"]
+    h = {"Authorization": f"Bearer {tok}"}
+    st = client.get("/notify/status").json()
+    assert st["provider"] in ("none", "meta", "twilio")
+    assert client.post("/me/notify/test", headers=h).status_code == 422          # no number yet
+    bad = client.put("/me/plant", headers=h, json={"values": {"whatsapp_alerts": "critical", "whatsapp_number": "98765"}})
+    assert bad.status_code == 422
+    ok = client.put("/me/plant", headers=h, json={"values": {"whatsapp_alerts": "critical", "whatsapp_number": "+91 98765 43210"}})
+    assert ok.status_code == 200 and ok.json()["values"]["whatsapp_number"] == "+919876543210"
+    r = client.post("/me/notify/test", headers=h).json()
+    assert r["status"] in ("logged", "sent", "failed")
+    assert client.get("/me/notifications", headers=h).json()[0]["to"] == "+919876543210"
+    blocks = [[f"2026-10-10T{h_:02d}:{m:02d}:00Z", 10.0] for h_ in range(0, 24) for m in (0, 15, 30, 45)][:96]
+    first = client.put("/me/schedule", headers=h, json={"date": "2026-10-10", "blocks": blocks}).json()
+    again = client.put("/me/schedule", headers=h, json={"date": "2026-10-10", "blocks": blocks}).json()
+    assert first["revision"] == 0 and again["revision"] == 1 and len(again["blocks"]) == 96
+    assert client.get("/me/schedule?date=2026-10-10", headers=h).json()["revision"] == 1

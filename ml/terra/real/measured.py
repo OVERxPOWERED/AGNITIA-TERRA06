@@ -6,6 +6,8 @@ Steps, all reproducible from the uploaded file and public weather:
      timestamp check (cross-correlation with clear-sky irradiance finds timezone or labelling shifts).
   3. Fetch the actual (reanalysis) weather for the same hours from Open-Meteo, plus NASA POWER irradiance as an
      independent second source.
+  (Superseded for the factor itself: `run` now fits calibration on the served forecast in terra.real.plant_eval;
+   `calibrate` below remains as a physics-only diagnostic.)
   4. Run the physics twin of the operator's plant on that weather and fit one multiplicative factor per source:
      a recency-weighted energy ratio (half-life HALF_LIFE_DAYS, so the factor reflects the plant's current state
      rather than last season) on the first 80% of the period, excluding likely outage or curtailment hours.
@@ -231,7 +233,26 @@ def calibrate(hourly: pd.DataFrame, cfg: TerraConfig, weather: pd.DataFrame, nas
     return out
 
 
-def run(text: str, cfg: TerraConfig, tz: str = "Asia/Kolkata", stamp: str = "start", unit: str = "MW") -> dict:
+def json_safe(o):
+    """NaN/inf -> None, numpy scalars -> Python, recursively (the report is sent as strict JSON)."""
+    if isinstance(o, dict):
+        return {str(k): json_safe(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [json_safe(v) for v in o]
+    if isinstance(o, (np.floating, float)):
+        return float(o) if np.isfinite(o) else None
+    if isinstance(o, np.integer):
+        return int(o)
+    if isinstance(o, np.bool_):
+        return bool(o)
+    return o
+
+
+def run(text: str, applied, tz: str = "Asia/Kolkata", stamp: str = "start", unit: str = "MW") -> dict:
+    """Upload -> quality report -> backtest of the served forecast on this plant -> calibration (see plant_eval)."""
+    from terra.real.plant_eval import evaluate_plant
+
+    cfg = applied.user_cfg
     hourly, notes = parse_csv(text, tz, stamp, unit)
     q, warns = quality(hourly, cfg)
     lag = timestamp_shift(hourly, cfg)
@@ -239,10 +260,12 @@ def run(text: str, cfg: TerraConfig, tz: str = "Asia/Kolkata", stamp: str = "sta
         warns.append(f"Solar readings line up best with the sun when shifted by {lag:+d} h. "
                      "Check the timezone and whether timestamps mark the start or the end of each interval.")
     start, end = hourly.index[0] - pd.Timedelta(hours=1), hourly.index[-1]
-    weather = fetch_weather(cfg, start, end)
     nasa = fetch_nasa_ghi(cfg, start, end) if "solar_mw" in hourly else None
-    fits = calibrate(hourly, cfg, weather, nasa)
-    return {"notes": notes, "quality": q, "timestamp_shift_h": lag, "warnings": warns, "sources": fits,
-            "factors": {s: r["factor"] for s, r in fits.items() if "factor" in r},
-            "weather": {"openmeteo": "archive (reanalysis)",
-                        "nasa_power": "ok" if nasa is not None else "unavailable for this period"}}
+    ev = evaluate_plant(hourly, applied, nasa=nasa)
+    if "error" in ev:
+        raise UploadError(ev["error"])
+    fits = ev.pop("calibration_fit")
+    return json_safe({"notes": notes, "quality": q, "timestamp_shift_h": lag, "warnings": warns, "sources": fits,
+            "factors": ev.pop("factors"), "evaluation": ev,
+            "weather": {"openmeteo": "archived forecasts (Previous Runs API) and reanalysis",
+                        "nasa_power": "ok" if nasa is not None else "unavailable for this period"}})
