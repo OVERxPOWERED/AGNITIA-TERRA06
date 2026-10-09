@@ -197,6 +197,30 @@ class LocationJob(BaseModel):
     reused: bool = False
 
 
+class PlantSummary(BaseModel):
+    plant_name: str
+    location: str
+    solar_ac_mw: float
+    wind_mw: float
+    battery_mw: float
+    battery_mwh: float
+    demand_peak_mw: float
+    solar_scale: float
+    wind_scale: float
+    entered: list[str]
+    customised: bool
+
+
+class ProfileBody(BaseModel):
+    values: dict[str, str | float | int | None] = {}
+
+
+class ProfileCheck(BaseModel):
+    clean: dict[str, str | float | int]
+    errors: dict[str, str]
+    summary: PlantSummary | None = None
+
+
 class LocationResult(BaseModel):
     location: LocationInfo
     issue_time_utc: str
@@ -206,7 +230,10 @@ class LocationResult(BaseModel):
     hybrid: list[ForecastPoint]
     dispatch: list[DispatchPoint]
     kpis: Kpis
+    dispatch_by_strategy: dict[str, list[DispatchPoint]]
+    kpis_by_strategy: dict[str, Kpis]
     alerts: list[AlertOut]
     validated_here: bool
     caveat: str
     attribution: str
+    plant: PlantSummary

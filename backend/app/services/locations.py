@@ -1,11 +1,13 @@
-"""Live forecasts for allowlisted sites ("the same plant, somewhere else").
+"""Live forecasts for allowlisted sites, optionally with the operator's plant profile applied.
 
-A request starts a background job that runs the normal forecast pipeline in live mode with only the site
-block changed, writing into artifacts/runs_location/<id>/ so the main run is never touched. Results are
-reused for CACHE_MINUTES. At most MAX_WORKERS jobs run at once, so the API stays responsive.
+A request starts a background job that runs the normal forecast pipeline in live mode, writing into
+artifacts/runs_location/<site>/<profile hash>/ so the main run is never touched. The profile arrives with the
+request (the browser holds it), so the server stays stateless and one visitor cannot change another's plant.
+Results are reused for CACHE_MINUTES per (site, profile). At most MAX_WORKERS jobs run at once.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import threading
 import uuid
@@ -15,13 +17,14 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 from terra.config import load_config
 from terra.data.openmeteo import ATTRIBUTION
-from terra.locations import Location, config_for, get_location, load_locations
+from terra.locations import Location, get_location, load_locations
 from terra.logs import get_logger
 from terra.paths import ARTIFACTS
 from terra.pipelines.forecast import run_forecast
+from terra.profile import apply_profile, defaults, schema, validate
 
 from app.schemas.api import (AlertOut, DispatchPoint, ForecastPoint, Kpis, LocationInfo, LocationJob,
-                             LocationResult)
+                             LocationResult, PlantSummary, ProfileCheck)
 
 log = get_logger(__name__)
 ROOT = ARTIFACTS / "runs_location"
@@ -30,7 +33,6 @@ MAX_WORKERS = 2
 _pool = ThreadPoolExecutor(max_workers=MAX_WORKERS, thread_name_prefix="location")
 _lock = threading.Lock()
 _jobs: dict[str, dict] = {}
-_latest: dict[str, str] = {}          # location id -> run dir name of the newest finished run
 
 
 def _now() -> datetime:
@@ -46,15 +48,41 @@ def list_locations() -> list[LocationInfo]:
     return [info(x) for x in load_locations()[0]]
 
 
+def _home() -> str:
+    return load_locations()[1]
+
+
+def profile_schema() -> dict:
+    return schema(load_config(), _home())
+
+
+def _summary(loc: Location, clean: dict) -> PlantSummary:
+    a = apply_profile(load_config(), loc, clean)
+    base = defaults(load_config(), _home())
+    changed = [k for k, v in clean.items() if k in base and v != base[k] and k not in ("plant_name", "operator", "location_id")]
+    return PlantSummary(**a.summary, entered=sorted(clean), customised=bool(changed))
+
+
+def check_profile(values: dict, location_id: str | None = None) -> ProfileCheck:
+    ids = {x.id for x in load_locations()[0]}
+    clean, errors = validate(values, load_config(), _home(), ids)
+    loc = get_location(location_id or clean.get("location_id") or _home())
+    return ProfileCheck(clean=clean, errors=errors, summary=_summary(loc, clean) if loc and not errors else None)
+
+
+def _key(clean: dict) -> str:
+    return hashlib.sha1(json.dumps(clean, sort_keys=True).encode()).hexdigest()[:10]
+
+
 def _view(j: dict, reused: bool = False) -> LocationJob:
     return LocationJob(job_id=j["id"], location_id=j["loc"], status=j["status"], step=j["step"],
                        started_at=j["started"].isoformat(), error=j.get("error"), reused=reused,
                        finished_at=j["finished"].isoformat() if j.get("finished") else None)
 
 
-def _fresh(loc_id: str) -> dict | None:
+def _fresh(loc_id: str, key: str) -> dict | None:
     for j in sorted(_jobs.values(), key=lambda x: x["started"], reverse=True):
-        if j["loc"] != loc_id:
+        if j["loc"] != loc_id or j["key"] != key:
             continue
         if j["status"] in ("queued", "running"):
             return j
@@ -68,25 +96,30 @@ def _run(job: dict) -> None:
     loc = get_location(job["loc"])
     try:
         job["status"] = "running"
-        cfg = config_for(load_config(), loc)
-        out = run_forecast(cfg, "live", runs_dir=ROOT / loc.id, write_latest=False,
-                           progress=lambda s: job.__setitem__("step", s))
-        _latest[loc.id] = out.name
-        job.update(status="done", step="done", finished=_now())
+        applied = apply_profile(load_config(), loc, job["clean"])
+        out = run_forecast(applied.user_cfg, "live", runs_dir=ROOT / loc.id / job["key"], write_latest=False,
+                           progress=lambda s: job.__setitem__("step", s), model_cfg=applied.model_cfg)
+        job.update(status="done", step="done", finished=_now(), run_dir=out)
     except Exception as exc:  # noqa: BLE001
         log.exception("location forecast failed for %s", loc.id)
         job.update(status="failed", error=f"{type(exc).__name__}: {exc}", finished=_now())
 
 
-def submit(loc_id: str, force: bool = False) -> LocationJob | None:
+def submit(loc_id: str, values: dict | None = None, force: bool = False) -> LocationJob | ProfileCheck | None:
     loc = get_location(loc_id)
     if loc is None:
         return None
+    chk = check_profile(values or {}, loc_id)
+    if chk.errors:
+        return chk
+    clean = {k: v for k, v in chk.clean.items() if k != "location_id"}
+    key = _key(clean)
     with _lock:
-        j = None if force else _fresh(loc_id)
+        j = None if force else _fresh(loc_id, key)
         if j is not None:
             return _view(j, reused=True)
-        j = {"id": uuid.uuid4().hex[:12], "loc": loc_id, "status": "queued", "step": "queued", "started": _now()}
+        j = {"id": uuid.uuid4().hex[:12], "loc": loc_id, "key": key, "clean": clean, "status": "queued",
+             "step": "queued", "started": _now()}
         _jobs[j["id"]] = j
         _pool.submit(_run, j)
         return _view(j)
@@ -104,26 +137,31 @@ def _points(df: pd.DataFrame, source: str) -> list[ForecastPoint]:
     return [ForecastPoint(**r) for r in d[cols].to_dict(orient="records")]
 
 
-def result(loc_id: str) -> LocationResult | None:
-    loc = get_location(loc_id)
-    name = _latest.get(loc_id)
-    if loc is None or name is None:
+def result(job_id: str) -> LocationResult | None:
+    j = _jobs.get(job_id)
+    if j is None or j["status"] != "done":
         return None
-    d = ROOT / loc_id / name
+    loc = get_location(j["loc"])
+    d = j["run_dir"]
     meta = json.loads((d / "run.json").read_text())
     fc = pd.read_parquet(d / "forecast.parquet")
     disp = pd.read_parquet(d / "dispatch.parquet")
-    disp = disp[disp["strategy"] == "advisor"].copy()
     disp["target_time_utc"] = disp["target_time_utc"].dt.strftime("%Y-%m-%dT%H:%M:%SZ")
-    kp = json.loads((d / "dispatch_kpis.json").read_text())["advisor"]
+    by = {k: [DispatchPoint(**r) for r in g[list(DispatchPoint.model_fields)].to_dict(orient="records")]
+          for k, g in disp.groupby("strategy")}
+    kall = {k: Kpis(**v) for k, v in json.loads((d / "dispatch_kpis.json").read_text()).items()}
     alerts = [AlertOut(**{**a, "acknowledged": False}) for a in json.loads((d / "alerts.json").read_text())]
+    plant = _summary(loc, j["clean"])
     home = info(loc).is_home
     caveat = ("This is the home site. The models were trained and tested here, on real weather and a virtual twin plant."
               if home else
-              "The same virtual plant is placed at this site. The models were trained and tested only at Dewas, "
-              "so accuracy here is not validated. Treat it as a live what-if, not a verified forecast.")
+              "The models were trained and tested only at Dewas, so accuracy here is not validated. "
+              "Treat it as a live what-if, not a verified forecast.")
+    if plant.customised:
+        caveat += (" Capacities are scaled from the Dewas plant on the assumption of the same technology; "
+                   "battery, demand and alert settings come from your plant profile.")
     return LocationResult(
         location=info(loc), issue_time_utc=meta["issue_time_utc"], generated_at=meta["created_at"],
         solar=_points(fc, "solar"), wind=_points(fc, "wind"), hybrid=_points(fc, "hybrid"),
-        dispatch=[DispatchPoint(**r) for r in disp[list(DispatchPoint.model_fields)].to_dict(orient="records")],
-        kpis=Kpis(**kp), alerts=alerts, validated_here=home, caveat=caveat, attribution=ATTRIBUTION)
+        dispatch=by["advisor"], kpis=kall["advisor"], dispatch_by_strategy=by, kpis_by_strategy=kall, alerts=alerts, validated_here=home and not plant.customised, caveat=caveat,
+        attribution=ATTRIBUTION, plant=plant)
