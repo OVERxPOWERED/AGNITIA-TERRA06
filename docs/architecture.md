@@ -14,11 +14,11 @@ flowchart LR
     TW["Virtual Digital Twin<br/>pvlib + windpowerlib + realism"]
     CAL["Calibration Engine<br/>calibrated on R1/R2/R4"]
     FR["Framing + 34 Features<br/>strict leak-free matching"]
-    MD["Models: Persistence · Physics<br/>LightGBM-Q · Chronos-2"]
+    MD["Models: Persistence · Week-Mean<br/>Physics · Tuned LightGBM-Q<br/>Chronos-2 ZS (benchmark)"]
     EN["Ensemble + CQR<br/>80% and 90% uncertainty bands"]
     ENG["Engines: Hybrid · Trust · Alerts<br/>Dispatch LP · Deviation Shield · Impact"]
   end
-  KG["Kaggle 2×T4<br/>Chronos-2 LoRA (GPU optional)"] -.-> MD
+  KG["Kaggle 2×T4<br/>Chronos-2 Zero-Shot (Benchmark)"] -.-> MD
   subgraph API["Backend (FastAPI)"]
     SCH["Scheduler (ForecastJob)<br/>live / replay via APScheduler"]
     RT["FastAPI Routers<br/>REST + SSE /alerts/stream"]

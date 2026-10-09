@@ -11,10 +11,10 @@ Grid operators and renewable energy providers in Madhya Pradesh face significant
 
 ## 3. Evidence
 Using our TERRA calibrated digital twin (40 MW AC solar + 50 MW wind = 90 MW total at Dewas, MP) evaluated on real Open-Meteo weather over the held-out 179-day test period under strict leak-free lead mapping, we achieved:
-- **Accuracy**: Ensemble model achieves skill over persistence of 26.1% (solar: MAE 1.60 MW vs 2.17 MW) and 36.7% (wind: MAE 4.09 MW vs 6.47 MW).
-- **Cost Savings**: Saved ₹25,21,213 (~₹25.21 Lakhs) in operational and fossil backup costs over 179 days compared to persistence dispatch (₹43,70,13,160 vs ₹43,95,34,373).
-- **DSM Penalty Reduction**: Saved ₹1,12,58,024 (~₹1.13 Crores) in deviation charges over 179 days compared to persistence scheduling (illustrative rates; verify before external use). Solar penalties fell from ₹53.66 Lakhs to ₹27.16 Lakhs; wind penalties fell from ₹1.28 Crores to ₹41.47 Lakhs.
-- **Environmental Impact**: Avoided 261.2 MWh of fossil backup and 170.3 MWh of curtailment vs persistence (907.3 MWh backup avoided vs a no-battery counterfactual), preventing 184.2 tCO2 of emissions (CEA CO2 Baseline Database v22.0 combined margin factor: 0.705 tCO2/MWh, FY2025-26).
+- **Accuracy**: Ensemble model achieves skill over persistence of +27.8% on solar (MAE 1.57 MW vs 2.17 MW) and +35.8% on wind (MAE 4.15 MW vs 6.47 MW). Standalone tuned LightGBM achieves +38.3% skill on wind (MAE 3.99 MW) and +27.8% on solar (MAE 1.57 MW). Foundation benchmark Chronos-2 zero-shot achieves +37.4% skill on wind (MAE 4.05 MW, lowest wind RMSE 5.94 MW) and +22.5% on solar (MAE 1.68 MW).
+- **Cost Savings**: Saved ₹29,90,857 (~₹29.91 Lakhs) in operational and fossil backup costs over 179 days compared to persistence dispatch (₹43,65,43,963 vs ₹43,95,34,820).
+- **DSM Penalty Reduction**: Saved ₹1,11,45,303 (~₹1.11 Crores / ₹111.45 Lakhs) in deviation charges over 179 days compared to persistence scheduling (illustrative rates; verify before external use). Solar penalties fell from ₹53.66 Lakhs to ₹26.65 Lakhs (optimized, or ₹27.29 Lakhs P50); wind penalties fell from ₹1.28 Crores (₹1,27,98,400) to ₹43.53 Lakhs (optimized, or ₹43.00 Lakhs P50).
+- **Environmental Impact**: Avoided 304.7 MWh of fossil backup and 248.9 MWh of curtailment vs persistence (950.7 MWh backup avoided vs a no-battery counterfactual), preventing 214.8 tCO2 of emissions (CEA CO2 Baseline Database v22.0 combined margin factor: 0.705 tCO2/MWh, FY2025-26).
 
 ## 4. Pricing Hypotheses
 *These are initial hypotheses to be validated with at least three IPPs (illustrative; verify before external use):*
