@@ -28,3 +28,30 @@ def test_models_quantiles_valid(cfg, frames, tmp_path):
     d = m.save(tmp_path / "gbm")
     again = GBMQuantile.load(d)
     assert np.allclose(again.predict(Xva)["q50"], q["q50"])
+
+
+def test_external_comparison_only_default(cfg, frames):
+    from terra.pipelines.train import train_source
+    f = frames["solar"]
+    keys = f[["issue_time_utc", "target_time_utc"]].drop_duplicates()
+    ext_df = keys.copy()
+    for q in QCOLS:
+        ext_df[q] = 1.0
+
+    # 1. By default: external with full coverage is reported but NOT in ensemble
+    bundle, preds_long, table = train_source(
+        f, "solar", cfg, external={"mock_ext": ext_df},
+        gbm_params={"n_estimators": 5}, chronos_in_ensemble=False
+    )
+    assert "mock_ext" not in bundle.ensemble.members
+    assert set(bundle.ensemble.members) == {"physics", "gbm"}
+    assert "mock_ext" in table["model"].values
+    assert "mock_ext" in preds_long["model"].values
+
+    # 2. When chronos_in_ensemble=True: joins ensemble
+    bundle_ens, _, _ = train_source(
+        f, "solar", cfg, external={"mock_ext": ext_df},
+        gbm_params={"n_estimators": 5}, chronos_in_ensemble=True
+    )
+    assert "mock_ext" in bundle_ens.ensemble.members
+

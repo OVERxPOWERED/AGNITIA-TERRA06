@@ -71,7 +71,9 @@ def frame() -> None:
 
 
 @app.command()
-def train(chronos_dir: Optional[Path] = typer.Option(None, help="folder with <source>_<model>.parquet from Kaggle")
+def train(chronos_dir: Optional[Path] = typer.Option(None, help="folder with <source>_<model>.parquet from Kaggle"),
+          chronos_in_ensemble: bool = typer.Option(False, "--chronos-in-ensemble/--no-chronos-in-ensemble",
+                                                   help="include Chronos in ensemble (default: False)")
           ) -> None:
     from terra.pipelines.train import train_all
     cfg = load_config()
@@ -91,7 +93,7 @@ def train(chronos_dir: Optional[Path] = typer.Option(None, help="folder with <so
     if params_file.exists():                      # written by the tuning step (task T4.5.1)
         import yaml
         gbm_params = yaml.safe_load(params_file.read_text())
-    train_all(frames, cfg, external, gbm_params=gbm_params)
+    train_all(frames, cfg, external, gbm_params=gbm_params, chronos_in_ensemble=chronos_in_ensemble)
     typer.echo(f"models saved under {ARTIFACTS / 'models'}")
 
 

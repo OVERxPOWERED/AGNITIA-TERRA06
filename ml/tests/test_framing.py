@@ -82,3 +82,23 @@ def test_splits_do_not_cross(frames, cfg):
         for name, (lo, hi) in b.items():
             part = f[f["split"] == name]
             assert part["target_time_utc"].max() <= hi and part["issue_time_utc"].min() >= lo
+
+
+def test_tune_holdout_split_no_leakage(frames):
+    from terra.pipelines.train import split_train_holdout
+
+    for source in ("solar", "wind"):
+        f = frames[source]
+        fit_df, holdout_df = split_train_holdout(f, holdout_frac=0.2)
+        assert not fit_df.empty and not holdout_df.empty
+        # No leakage: tune_holdout issue times strictly after the fitted part
+        assert holdout_df["issue_time_utc"].min() > fit_df["issue_time_utc"].max()
+        # Boundary rows dropped: fit target times never reach or cross into holdout issue times
+        assert fit_df["target_time_utc"].max() < holdout_df["issue_time_utc"].min()
+        # Verify boundary rows were indeed dropped
+        tr = f[f["split"] == "train"]
+        issues = np.sort(tr["issue_time_utc"].unique())
+        cut = issues[int(len(issues) * 0.8)]
+        boundary_rows = tr[(tr["issue_time_utc"] < cut) & (tr["target_time_utc"] >= cut)]
+        assert len(boundary_rows) > 0
+        assert len(fit_df) + len(holdout_df) + len(boundary_rows) == len(tr)

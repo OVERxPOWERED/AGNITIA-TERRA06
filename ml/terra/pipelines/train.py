@@ -40,8 +40,28 @@ def split_val(frame: pd.DataFrame, frac: float = 0.6) -> pd.DataFrame:
     return f
 
 
+def split_train_holdout(frame: pd.DataFrame, holdout_frac: float = 0.2) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split TRAIN split into fit and holdout sets for leakage-free hyperparameter tuning.
+
+    - fit on TRAIN minus its last holdout_frac of issue times
+    - tune_holdout is the last holdout_frac of issue times
+    - rows whose target crosses the boundary (issue_time < cut and target_time >= cut)
+      are dropped, exactly as framing does across split boundaries.
+    """
+    tr = frame[frame["split"] == "train"].copy()
+    issues = np.sort(tr["issue_time_utc"].unique())
+    if len(issues) == 0:
+        return tr.iloc[:0], tr.iloc[:0]
+    cut_idx = int(len(issues) * (1.0 - holdout_frac))
+    cut = issues[cut_idx]
+    fit_mask = (tr["issue_time_utc"] < cut) & (tr["target_time_utc"] < cut)
+    holdout_mask = tr["issue_time_utc"] >= cut
+    return tr[fit_mask].copy(), tr[holdout_mask].copy()
+
+
 def train_source(frame: pd.DataFrame, source: str, cfg: TerraConfig,
-                 external: dict[str, pd.DataFrame] | None = None, gbm_params: dict | None = None
+                 external: dict[str, pd.DataFrame] | None = None, gbm_params: dict | None = None,
+                 chronos_in_ensemble: bool = False
                  ) -> tuple[ForecastBundle, pd.DataFrame, pd.DataFrame]:
     """external: optional {name: predictions keyed by issue/target} e.g. {'chronos2_zs': df}."""
     cap = cfg.capacity_mw(source)
@@ -63,8 +83,11 @@ def train_source(frame: pd.DataFrame, source: str, cfg: TerraConfig,
         cover = align_external(f[f.split.isin(["val_fit", "val_cal", "test"])], ext)
         if cover.isna().any().any():
             log.warning("%s lacks full val/test coverage -> evaluated but not in ensemble", name)
-        else:
+        elif chronos_in_ensemble:
             members.append(name)
+            log.info("%s has full coverage -> included in ensemble members", name)
+        else:
+            log.info("%s has full coverage -> comparison-only benchmark (not in ensemble)", name)
         ext_ok[name] = ext
 
     bundle = ForecastBundle(source, cap, models, Ensemble(members), CQR(), feature_columns(f))
@@ -94,21 +117,30 @@ def train_source(frame: pd.DataFrame, source: str, cfg: TerraConfig,
     preds_long = pd.concat(results, ignore_index=True)
     test = preds_long[preds_long["split"] == "test"]
     table = metrics_table(test, cap)
+    tuning_wall_clock = (
+        gbm_params.get("wall_clock_minutes")
+        if isinstance(gbm_params, dict) else None
+    )
     bundle.meta = {"config_hash": cfg.hash(), "members": members,
                    "ensemble_weights": bundle.ensemble.weights_table().round(4).to_dict(),
                    "gbm_train_seconds": models["gbm"].meta.get("train_seconds"),
+                   "gbm_params": models["gbm"].params,
+                   "gbm_tuning": gbm_params,
+                   "tuning_wall_clock_minutes": tuning_wall_clock,
                    "test_metrics": table.round(4).to_dict(orient="records")}
     return bundle, preds_long, table
 
 
 def train_all(frames: dict[str, pd.DataFrame], cfg: TerraConfig,
               external: dict[str, dict[str, pd.DataFrame]] | None = None, save: bool = True,
-              gbm_params: dict[str, dict] | None = None) -> dict:
+              gbm_params: dict[str, dict] | None = None,
+              chronos_in_ensemble: bool = False) -> dict:
     """gbm_params: optional {source: LightGBM params} from config/gbm_params.yaml (task T4.5)."""
     out = {}
     for source, frame in frames.items():
         bundle, preds, table = train_source(frame, source, cfg, (external or {}).get(source),
-                                            (gbm_params or {}).get(source))
+                                            (gbm_params or {}).get(source),
+                                            chronos_in_ensemble=chronos_in_ensemble)
         out[source] = (bundle, preds, table)
         log.info("%s test metrics:\n%s", source, table[["model", "mae", "rmse", "nmae_pct", "picp80",
                                                         "skill_vs_persistence"]].round(3).to_string(index=False))
