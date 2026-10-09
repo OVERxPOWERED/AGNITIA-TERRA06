@@ -47,15 +47,17 @@ def build_inputs(ds: pd.DataFrame, source: str, issues: pd.DatetimeIndex, contex
         c = past_cov.reindex(hist_idx).copy()
         c["target"] = y.reindex(hist_idx).to_numpy()
         c["item_id"], c["timestamp"] = item, hist_idx.tz_convert(None)
+        c = c.ffill().bfill()
         ctx.append(c)
         rows = []
         for lead in range(1, horizon_h + 1):
             p = next(pr for lo, hi, _, pr in LEAD_BUCKETS if lo <= lead <= hi)
             ts = t0 + pd.Timedelta(hours=lead)
             rows.append(lead_cov[p].loc[ts].to_dict() | {"item_id": item, "timestamp": ts.tz_convert(None)})
-        fut.append(pd.DataFrame(rows))
-    context_df = pd.concat(ctx, ignore_index=True).ffill().bfill()
-    future_df = pd.concat(fut, ignore_index=True).ffill().bfill()
+        fut_item = pd.DataFrame(rows).ffill().bfill()
+        fut.append(fut_item)
+    context_df = pd.concat(ctx, ignore_index=True) if ctx else pd.DataFrame()
+    future_df = pd.concat(fut, ignore_index=True) if fut else pd.DataFrame()
     return context_df, future_df
 
 

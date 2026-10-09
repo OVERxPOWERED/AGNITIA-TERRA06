@@ -1,0 +1,17 @@
+{
+  "id": "overxpowered/terra-chronos2-zs",
+  "title": "terra-chronos2-zs",
+  "code_file": "chronos2_infer.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_tpu": "false",
+  "enable_internet": "true",
+  "dataset_sources": [
+    "overxpowered/terra06-bundle-20261009"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

@@ -78,8 +78,14 @@ def train(chronos_dir: Optional[Path] = typer.Option(None, help="folder with <so
     frames = {s: pd.read_parquet(DATA_PROCESSED / f"framed_{s}.parquet") for s in ("solar", "wind")}
     external = None
     if chronos_dir:
-        external = {s: {p.stem.split("_", 1)[1]: pd.read_parquet(p) for p in sorted(chronos_dir.glob(f"{s}_*.parquet"))}
-                    for s in ("solar", "wind")}
+        external = {}
+        for s in ("solar", "wind"):
+            ext_s = {}
+            for p in sorted(chronos_dir.glob(f"{s}_*.parquet")):
+                ext_s[p.stem.split("_", 1)[1]] = pd.read_parquet(p)
+            for p in sorted(chronos_dir.glob(f"*_{s}.parquet")):
+                ext_s.setdefault(p.stem.rsplit("_", 1)[0], pd.read_parquet(p))
+            external[s] = ext_s
     params_file = CONFIG_DIR / "gbm_params.yaml"
     gbm_params = None
     if params_file.exists():                      # written by the tuning step (task T4.5.1)
