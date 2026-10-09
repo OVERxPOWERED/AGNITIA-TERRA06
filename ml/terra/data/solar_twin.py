@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from pvlib import inverter, irradiance, pvsystem, temperature
+from pvlib import inverter, irradiance, pvsystem, temperature, tracking
 from pvlib.location import Location
 
 from terra.config import SiteCfg, SolarCfg
@@ -46,8 +46,13 @@ def poa_irradiance(weather: pd.DataFrame, site: SiteCfg, solar: SolarCfg, prefix
         dni, dhi = dec["dni"].fillna(0), dec["dhi"].fillna(0)
     dni_extra = irradiance.get_extra_radiation(weather.index - pd.Timedelta(minutes=30))
     dni_extra.index = weather.index
+    tilt, azim = solar.tilt_deg, solar.azimuth_deg
+    if getattr(solar, "tracking", "fixed") == "single_axis":
+        tr = tracking.singleaxis(sp["apparent_zenith"], sp["azimuth"], axis_tilt=0, axis_azimuth=180,
+                                 max_angle=60, backtrack=True, gcr=0.35)
+        tilt, azim = tr["surface_tilt"].fillna(0), tr["surface_azimuth"].fillna(180)
     poa = irradiance.get_total_irradiance(
-        surface_tilt=solar.tilt_deg, surface_azimuth=solar.azimuth_deg,
+        surface_tilt=tilt, surface_azimuth=azim,
         solar_zenith=sp["apparent_zenith"], solar_azimuth=sp["azimuth"],
         dni=dni, ghi=ghi, dhi=dhi, dni_extra=dni_extra, albedo=solar.albedo, model="isotropic",
     )

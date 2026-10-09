@@ -24,7 +24,9 @@ import pandas as pd
 from terra.config import TerraConfig
 from terra.data.build_dataset import build_dataset, load_dataset
 from terra.data.openmeteo import ATTRIBUTION, OpenMeteoClient
+from terra.data.solar_twin import simulate_solar, solar_position
 from terra.data.weather_tables import add_derived
+from terra.data.wind_twin import simulate_wind
 from terra.engines.alerts import generate_alerts
 from terra.engines.dispatch import no_battery, plan, rule_based
 from terra.engines.dsm import schedule_at_level
@@ -35,7 +37,7 @@ from terra.logs import get_logger
 from terra.models.downscale import downscale_solar, downscale_wind
 from terra.models.registry import load_object
 from terra.paths import ARTIFACTS
-from terra.schema import FORECAST_VARS, QCOLS
+from terra.schema import FORECAST_VARS, PHYS, QCOLS
 
 log = get_logger(__name__)
 RUNS = ARTIFACTS / "runs"
@@ -64,15 +66,36 @@ def replay_dataset(cfg: TerraConfig, at: str | None) -> tuple[pd.DataFrame, pd.T
     return ds, t0
 
 
+def _physics_ratio(ds: pd.DataFrame, rows: pd.DataFrame, source: str, user: TerraConfig, model: TerraConfig) -> np.ndarray:
+    """Hourly physics(operator plant) / physics(trained plant) on the same lead-resolved forecast weather."""
+    targets = pd.DatetimeIndex(rows["target_time_utc"])
+    sp = solar_position(ds.index, user.site)
+    phys_u = {}
+    for d in (1, 2):
+        pre = f"fx{d}_"
+        phys_u[d] = (simulate_solar(ds, user.site, user.solar, pre, sp) if source == "solar"
+                     else simulate_wind(ds, user.wind, pre))
+    lead = rows["lead_h"].to_numpy()
+    pu = np.where(lead <= 24, phys_u[1].reindex(targets).to_numpy(), phys_u[2].reindex(targets).to_numpy())
+    pm = rows[f"{PHYS}mw"].to_numpy()
+    eps = 0.02 * model.capacity_mw(source)              # smooths dawn/dusk and calm hours where both are ~0
+    return np.clip((np.nan_to_num(pu) + eps) / (np.nan_to_num(pm) + eps), 0.0, 4.0)
+
+
 def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, *, runs_dir: Path | None = None,
-                 write_latest: bool = True, progress=None, model_cfg: TerraConfig | None = None) -> Path:
+                 write_latest: bool = True, progress=None, model_cfg: TerraConfig | None = None,
+                 adjust=None, second_opinions: bool = False, api_keys: dict | None = None) -> Path:
     """`runs_dir`/`write_latest` let the /location feature write elsewhere without touching the main LATEST run.
     `progress(step: str)` is called as each stage starts (used by the API for the loading screen).
-    `model_cfg` is the plant the models were trained for. When the operator's plant (`cfg`) has other capacities,
-    models run on `model_cfg` and the MW outputs, demand and alert thresholds are scaled by the capacity ratio."""
+    `model_cfg` is the plant the models were trained for; `cfg` is the operator's plant. When they differ the models
+    run on `model_cfg` and each hour is multiplied by physics(cfg) / physics(model_cfg) on the same forecast weather.
+    `adjust` (terra.profile.Applied) adds hourly availability, condition and calibration factors, the generation
+    sources and the export limit. `second_opinions` adds other weather models (live mode)."""
     mcfg = model_cfg or cfg
-    ksc = {s: cfg.capacity_mw(s) / mcfg.capacity_mw(s) for s in ("solar", "wind")}
-    ksc["hybrid"] = cfg.capacity_mw("hybrid") / mcfg.capacity_mw("hybrid")
+    sources = adjust.sources if adjust is not None else {"solar", "wind"}
+    cap_u = {s: cfg.capacity_mw(s) for s in ("solar", "wind")}
+    cap_on = {s: (cap_u[s] if s in sources else 0.0) for s in cap_u}
+    hyb_cap = max(cap_on["solar"] + cap_on["wind"], 1e-6)
     kdem = cfg.demand.peak_mw / mcfg.demand.peak_mw
     step = progress or (lambda _s: None)
     runs_root = runs_dir or RUNS
@@ -86,6 +109,7 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
     out.mkdir(parents=True, exist_ok=True)
 
     per_source: dict[str, pd.DataFrame] = {}
+    factors: dict[str, np.ndarray] = {}
     all_alerts = []
     for s in ("solar", "wind"):
         bundle = load_object(s, "bundle@latest")
@@ -100,11 +124,17 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         q, members, spread = bundle.predict(rows, external)
         absres = (ds[f"{s}_mw"] - ds[f"phys0_{s}_mw"]).abs().rolling(168, min_periods=1).mean()
         recent = float(absres.loc[:t0].iloc[-1]) / bundle.capacity_mw
-        k = ksc[s]
-        if k != 1.0:
-            q, spread = q * k, spread * k
-            members = {m: mq * k for m, mq in members.items()}
-        cap = cfg.capacity_mw(s)
+        k = np.ones(len(q))
+        if model_cfg is not None:
+            k = _physics_ratio(ds, rows, s, cfg, mcfg)
+        if adjust is not None:
+            k = k * adjust.factor(s, pd.DatetimeIndex(rows["target_time_utc"]), t0)
+        factors[s] = k
+        if not np.allclose(k, 1.0):
+            q = q.mul(k, axis=0)
+            spread = spread * k
+            members = {m: mq.mul(k, axis=0) for m, mq in members.items()}
+        cap = cap_u[s]
         feats = trust_features(q, spread, rows["lead_h"].to_numpy(), np.full(len(q), recent), cap)
         tm = eng["trust"][s]
         df = pd.DataFrame({"target_time_utc": rows["target_time_utc"], "lead_h": rows["lead_h"],
@@ -118,33 +148,40 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         df["source"] = s
         per_source[s] = df
         rows.to_parquet(out / f"rows_{s}.parquet")
+        if s not in sources:
+            continue
         fc = df.set_index("target_time_utc")
         th_s = alert_thrs.get(s) if alert_thrs else None
-        if th_s and k != 1.0:
-            th_s = {n: (x * k if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_s.items()}
+        kc = cap / bundle.capacity_mw
+        if th_s and kc != 1.0:
+            th_s = {n: (x * kc if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_s.items()}
         all_alerts += generate_alerts(fc, s, cap, cfg.alerts, t0, trust=fc["trust_score"], thresholds=th_s)
 
     step("plan")
     sol, win = per_source["solar"], per_source["wind"]
     hyb_q = hybrid_forecast(sol[list(QCOLS)], win[list(QCOLS)], sol["cal_is_day"].to_numpy(),
-                            eng["rho_by_day"], cfg.capacity_mw("solar"), cfg.capacity_mw("wind"))
+                            eng["rho_by_day"], cap_u["solar"], cap_u["wind"])
+    limit = adjust.export_limit_mw if adjust is not None else None
+    export_curtailed = np.zeros(len(hyb_q))
+    if limit is not None:
+        export_curtailed = np.clip(hyb_q["q50"].to_numpy() - limit, 0, None)
+        hyb_q = hyb_q.clip(upper=limit)
     hyb = sol[["target_time_utc", "lead_h", "cal_is_day"]].copy()
     hyb[list(QCOLS)] = hyb_q.to_numpy()
-    hyb["trust_score"] = hybrid_trust_score(
-        sol["q50"].to_numpy(),
-        win["q50"].to_numpy(),
-        sol["trust_score"].to_numpy(),
-        win["trust_score"].to_numpy(),
-    )
+    hyb["export_curtailed_mw"] = export_curtailed
+    w_s = sol["q50"].to_numpy() if "solar" in sources else np.zeros(len(sol))
+    w_w = win["q50"].to_numpy() if "wind" in sources else np.zeros(len(win))
+    hyb["trust_score"] = hybrid_trust_score(w_s, w_w, sol["trust_score"].to_numpy(), win["trust_score"].to_numpy())
     hyb["trust_level"] = [level(x) for x in hyb["trust_score"]]
     hyb["trust_reason"] = np.where(sol["trust_score"] <= win["trust_score"], sol["trust_reason"], win["trust_reason"])
     hyb["source"] = "hybrid"
     demand = ds["demand_mw"].reindex(hyb["target_time_utc"]) * kdem
     fc = hyb.set_index("target_time_utc")
     th_hyb = alert_thrs.get("hybrid") if alert_thrs else None
-    if th_hyb and ksc["hybrid"] != 1.0:
-        th_hyb = {n: (x * ksc["hybrid"] if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_hyb.items()}
-    all_alerts += generate_alerts(fc, "hybrid", cfg.capacity_mw("hybrid"), cfg.alerts, t0,
+    khyb = hyb_cap / mcfg.capacity_mw("hybrid")
+    if th_hyb and khyb != 1.0:
+        th_hyb = {n: (x * khyb if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_hyb.items()}
+    all_alerts += generate_alerts(fc, "hybrid", hyb_cap, cfg.alerts, t0,
                                   demand=pd.Series(demand.to_numpy(), index=fc.index), thresholds=th_hyb)
     forecast = pd.concat([sol, win, hyb], ignore_index=True)
     forecast.to_parquet(out / "forecast.parquet")
@@ -175,6 +212,19 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         sdf = pd.DataFrame(sched)
         sdf["hybrid"] = sdf.sum(axis=1)
         sdf.rename_axis("block_end_utc").reset_index().to_parquet(out / "dsm_schedule.parquet")
+
+    if second_opinions and mode == "live":
+        from terra.data.weather_models import disagreement_alerts
+        from terra.data.weather_models import second_opinions as fetch_second_opinions
+        step("second")
+        targets = pd.DatetimeIndex(hyb["target_time_utc"])
+        f_s = adjust.factor("solar", targets, t0) if adjust is not None else np.ones(len(targets))
+        f_w = adjust.factor("wind", targets, t0) if adjust is not None else np.ones(len(targets))
+        table, status = fetch_second_opinions(cfg, targets, f_s, f_w, sources, limit, api_keys)
+        if not table.empty:
+            table.to_parquet(out / "weather_models.parquet")
+            all_alerts += disagreement_alerts(table, hyb_cap, cfg.alerts.weather_disagreement_frac, t0)
+        (out / "weather_models.json").write_text(json.dumps(status, indent=2))
 
     (out / "alerts.json").write_text(json.dumps([a.to_dict() for a in all_alerts], indent=2))
     meta = {"issue_time_utc": t0.isoformat(), "mode": mode, "created_at": datetime.now(timezone.utc).isoformat(),

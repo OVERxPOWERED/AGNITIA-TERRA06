@@ -78,6 +78,7 @@ alerts:
   high_generation_frac: 0.85   # fallback: above 85% -> curtailment risk
   ramp_mw_per_h: 20.0          # fallback: fixed ramp threshold
   low_trust_score: 40
+  weather_disagreement_frac: 0.25   # weather models' physics output spans > 25% of plant capacity for >= 2 h
   min_probability: 0.60
 
 weather:

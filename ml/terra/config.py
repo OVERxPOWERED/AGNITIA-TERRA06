@@ -43,6 +43,7 @@ class SolarCfg(BaseModel):
     gamma_pdc: float = Field(default=-0.0037, lt=0)
     system_loss_frac: float = Field(default=0.14, ge=0, lt=1)
     eta_inv_nom: float = Field(default=0.96, gt=0, le=1)
+    tracking: Literal["fixed", "single_axis"] = "fixed"   # single_axis: N-S axis, east-west tracking with backtracking
 
 
 class WindCfg(BaseModel):
@@ -127,6 +128,7 @@ class AlertsCfg(BaseModel):
     ramp_mw_per_h: float = 20.0
     low_trust_score: float = 40
     min_probability: float = 0.6
+    weather_disagreement_frac: float = 0.25   # alert when weather models' plant output spans > this x capacity
 
     def get_low_quantile(self, source: str) -> float:
         if isinstance(self.low_quantile, dict):
