@@ -2,6 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "_comment": "NEXT_PUBLIC_API_BASE must be configured in Vercel project settings BEFORE building (it is baked into the client bundle at build time)."
+  "outputDirectory": ".next"
 }
