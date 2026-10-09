@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     replay_step_hours: int = 6
     schedule_minutes: int = 60
     scheduler_enabled: bool = True
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     db_url: str = "sqlite:///./terra.db"
     version: str = "0.1.0"
 
