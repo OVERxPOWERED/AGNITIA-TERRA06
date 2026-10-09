@@ -34,8 +34,15 @@ function Clock() {
 /** The status of the API connection, shown as the mode pill. */
 function ModePill() {
   const health = useHealth();
-  if (health.isError) return <Pill tone="bad"><Dot color="var(--bad)" />Offline</Pill>;
-  if (!health.data) return <Pill tone="warn"><Spinner className="h-3 w-3" />Waking up</Pill>;
+  const lastOk = health.dataUpdatedAt ? toIST(new Date(health.dataUpdatedAt).toISOString()) : null;
+  // A failed refresh while we still hold an earlier answer is a hiccup (Render cold start, redeploy), not an outage.
+  if (health.isError && health.data) {
+    return <Pill tone="warn" title={`The last check failed; retrying every minute. Last contact: ${lastOk}. Data on screen is from then.`}><Spinner className="h-3 w-3" />Reconnecting</Pill>;
+  }
+  if (health.isError) {
+    return <Pill tone="bad" title="The forecast server did not answer after repeated tries. It may be restarting; this page keeps retrying."><Dot color="var(--bad)" />Offline</Pill>;
+  }
+  if (!health.data) return <Pill tone="warn" title="The free server sleeps when idle and takes about a minute to wake."><Spinner className="h-3 w-3" />Waking up</Pill>;
   const live = health.data.mode === "live";
   return (
     <Pill tone={live ? "good" : "accent"} title={live ? "Live: new runs arrive on a schedule" : "Replay: a recorded run from the held-out test period"}>
