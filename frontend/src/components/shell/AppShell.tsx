@@ -99,7 +99,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useLiveUpdates(onAlert);
 
   const unacked = useMemo(() => (alerts.data ?? []).filter((a) => !a.acknowledged).length, [alerts.data]);
-  const current = NAV.find((n) => (n.href === "/" ? path === "/" : path.startsWith(n.href))) ?? NAV[0];
+  const onLocation = path.startsWith("/location");        // opened from the settings menu, so it has no tab
+  const current = onLocation ? { href: "/location", label: "Location", slug: "location" } : (NAV.find((n) => (n.href === "/" ? path === "/" : path.startsWith(n.href))) ?? NAV[0]);
   const configError = getApiBaseConfigError();
   const s = site.data;
 

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { Monitor, Moon, Settings, Sun } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Monitor, Moon, Settings, Sun } from "lucide-react";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { cn } from "@/lib/cn";
 
@@ -31,7 +32,7 @@ export default function SettingsMenu() {
   return (
     <div ref={box} className="relative">
       <button
-        aria-label="Appearance settings"
+        aria-label="Settings"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
@@ -40,7 +41,7 @@ export default function SettingsMenu() {
         <Settings className="h-4 w-4" aria-hidden />
       </button>
       {open && (
-        <div role="menu" aria-label="Colour theme" className="absolute right-0 z-50 mt-2 w-48 rounded-[10px] border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgb(0_0_0/0.14)]">
+        <div role="menu" aria-label="Settings" className="absolute right-0 z-50 mt-2 w-48 rounded-[10px] border border-line bg-surface p-1.5 shadow-[0_8px_28px_rgb(0_0_0/0.14)]">
           <div className="px-2 pb-1 pt-1 text-[12px] text-muted">Colour theme</div>
           {OPTIONS.map(({ value, label, Icon }) => (
             <button
@@ -54,6 +55,16 @@ export default function SettingsMenu() {
               {label}
             </button>
           ))}
+          <div className="my-1.5 border-t border-line" />
+          <Link
+            href="/location"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="t-colors flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] text-ink hover:bg-sunken"
+          >
+            <MapPin className="h-4 w-4" aria-hidden />
+            Location
+          </Link>
         </div>
       )}
     </div>

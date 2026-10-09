@@ -11,13 +11,46 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Health */
+        /**
+         * Health
+         * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
+         */
         get: operations["health_health_get"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
-        head?: never;
+        /**
+         * Health
+         * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
+         */
+        head: operations["health_health_get"];
+        patch?: never;
+        trace?: never;
+    };
+    "/health/deep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Health Deep
+         * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
+         *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
+         */
+        get: operations["health_deep_health_deep_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        /**
+         * Health Deep
+         * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
+         *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
+         */
+        head: operations["health_deep_health_deep_get"];
         patch?: never;
         trace?: never;
     };
@@ -265,6 +298,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Locations
+         * @description The allowlist the /location page offers.
+         */
+        get: operations["locations_locations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/{location_id}/forecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Result */
+        get: operations["result_locations__location_id__forecast_get"];
+        put?: never;
+        /**
+         * Start
+         * @description Start (or reuse, if under 30 minutes old) a live forecast for one allowlisted site.
+         */
+        post: operations["start_locations__location_id__forecast_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/locations/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Status */
+        get: operations["status_locations_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -469,6 +560,78 @@ export interface components {
             /** Battery Throughput Mwh */
             battery_throughput_mwh: number;
         };
+        /** LocationInfo */
+        LocationInfo: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Region */
+            region: string;
+            /** Latitude */
+            latitude: number;
+            /** Longitude */
+            longitude: number;
+            /** Altitude M */
+            altitude_m: number;
+            /** Note */
+            note: string;
+            /** Is Home */
+            is_home: boolean;
+        };
+        /** LocationJob */
+        LocationJob: {
+            /** Job Id */
+            job_id: string;
+            /** Location Id */
+            location_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "done" | "failed";
+            /**
+             * Step
+             * @enum {string}
+             */
+            step: "queued" | "weather" | "models" | "plan" | "done";
+            /** Started At */
+            started_at: string;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Error */
+            error?: string | null;
+            /**
+             * Reused
+             * @default false
+             */
+            reused: boolean;
+        };
+        /** LocationResult */
+        LocationResult: {
+            location: components["schemas"]["LocationInfo"];
+            /** Issue Time Utc */
+            issue_time_utc: string;
+            /** Generated At */
+            generated_at: string;
+            /** Solar */
+            solar: components["schemas"]["ForecastPoint"][];
+            /** Wind */
+            wind: components["schemas"]["ForecastPoint"][];
+            /** Hybrid */
+            hybrid: components["schemas"]["ForecastPoint"][];
+            /** Dispatch */
+            dispatch: components["schemas"]["DispatchPoint"][];
+            kpis: components["schemas"]["Kpis"];
+            /** Alerts */
+            alerts: components["schemas"]["AlertOut"][];
+            /** Validated Here */
+            validated_here: boolean;
+            /** Caveat */
+            caveat: string;
+            /** Attribution */
+            attribution: string;
+        };
         /** ModelRow */
         ModelRow: {
             /** Model */
@@ -608,6 +771,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    health_deep_health_deep_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    health_deep_health_deep_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -917,9 +1144,7 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "text/plain": string;
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -992,6 +1217,121 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    locations_locations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationInfo"][];
+                };
+            };
+        };
+    };
+    result_locations__location_id__forecast_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_locations__location_id__forecast_post: {
+        parameters: {
+            query?: {
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                location_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    status_locations_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationJob"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

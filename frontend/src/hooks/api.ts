@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { api, API_BASE, ApiError } from "@/lib/api/client";
 import type {
-  AlertOut, DispatchResponse, DsmSummary, ForecastResponse, Health, HistoryResponse, ImpactResponse,
+  AlertOut, DispatchResponse, LocationInfo, LocationJob, LocationResult, DsmSummary, ForecastResponse, Health, HistoryResponse, ImpactResponse,
   ModelsResponse, SiteInfo, Source, WhatIfRequest, WhatIfResponse,
 } from "@/lib/api/types";
 
@@ -72,3 +72,20 @@ export function useLiveUpdates(onAlert?: (a: AlertOut) => void) {
     return () => es.close();
   }, [qc, onAlert]);
 }
+
+/** The /location page: allowlisted sites, a background job per live forecast, and its result. */
+export const useLocations = () =>
+  useQuery({ queryKey: ["locations"], queryFn: () => api<LocationInfo[]>("/locations"), staleTime: Infinity, ...RETRY_CONFIG });
+export const useStartLocationForecast = () =>
+  useMutation({ mutationFn: (v: { id: string; force?: boolean }) => api<LocationJob>(`/locations/${v.id}/forecast${v.force ? "?force=true" : ""}`, { method: "POST" }) });
+/** Polls once a second until the job finishes or fails. */
+export const useLocationJob = (jobId: string | null) =>
+  useQuery({
+    queryKey: ["location-job", jobId],
+    enabled: !!jobId,
+    queryFn: () => api<LocationJob>(`/locations/jobs/${jobId}`),
+    refetchInterval: (q) => (q.state.data && ["done", "failed"].includes(q.state.data.status) ? false : 1000),
+    retry: false,
+  });
+export const useLocationResult = (id: string | null, jobId: string | null, ready: boolean) =>
+  useQuery({ queryKey: ["location-result", id, jobId], enabled: !!id && !!jobId && ready, queryFn: () => api<LocationResult>(`/locations/${id}/forecast`), staleTime: Infinity, retry: false });

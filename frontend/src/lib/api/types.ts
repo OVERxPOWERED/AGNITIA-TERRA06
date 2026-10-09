@@ -17,3 +17,6 @@ export type WhatIfResponse = S["WhatIfResponse"];
 export type DsmSummary = S["DsmSummary"];
 export type ImpactResponse = S["ImpactResponse"];
 export type Source = "solar" | "wind" | "hybrid";
+export type LocationInfo = S["LocationInfo"];
+export type LocationJob = S["LocationJob"];
+export type LocationResult = S["LocationResult"];
