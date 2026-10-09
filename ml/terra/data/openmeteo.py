@@ -25,6 +25,9 @@ from terra.schema import OPENMETEO_VARS
 
 log = get_logger(__name__)
 
+LIVE_TTL_S = 20 * 60          # live forecasts change a few times a day; one request per place per 20 minutes
+LIVE_STALE_S = 4 * 3600       # how old an answer may be when Open-Meteo is refusing requests
+_LIVE: dict[str, tuple[float, dict]] = {}
 ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0)"
 PREVIOUS_RUNS_URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
@@ -81,6 +84,29 @@ class OpenMeteoClient:
             raise ValueError(f"Open-Meteo 400: {r.text[:500]}")
         r.raise_for_status()
         return r.json()
+
+    def get_live(self, url: str, params: dict) -> dict:
+        """Forecast requests that must be fresh, but not on every call: reuse an answer for LIVE_TTL_S, and if
+        Open-Meteo refuses (rate limit on a shared host IP) fall back to the last answer up to LIVE_STALE_S old."""
+        key = json.dumps({"url": url, "params": params}, sort_keys=True)
+        now = time.monotonic()
+        hit = _LIVE.get(key)
+        if hit and now - hit[0] < LIVE_TTL_S:
+            return hit[1]
+        try:
+            data = self._fetch_live(url, params)
+        except Exception as exc:  # noqa: BLE001
+            if hit and now - hit[0] < LIVE_STALE_S:
+                log.warning("Open-Meteo unavailable (%s); serving the answer from %d min ago", type(exc).__name__, (now - hit[0]) // 60)
+                return hit[1]
+            raise
+        _LIVE[key] = (now, data)
+        return data
+
+    @retry(retry=retry_if_exception(_retryable), wait=wait_exponential(multiplier=2, min=2, max=10),
+           stop=stop_after_attempt(3), reraise=True)
+    def _fetch_live(self, url: str, params: dict) -> dict:
+        return self._fetch.__wrapped__(self, url, params)
 
     def get_json(self, url: str, params: dict, use_cache: bool = True) -> dict:
         path = self._cache_path(url, params)
@@ -162,7 +188,7 @@ class OpenMeteoClient:
                   "wind_speed_unit": "ms", "timezone": "GMT"}
         if model:
             params["models"] = model
-        payload = self.get_json(FORECAST_URL, params, use_cache=False)
+        payload = self.get_live(FORECAST_URL, params)
         base = self.to_frame(payload, {OPENMETEO_VARS[v]: v for v in variables})
         out = {}
         for p in ("fx0_", "fx1_", "fx2_"):

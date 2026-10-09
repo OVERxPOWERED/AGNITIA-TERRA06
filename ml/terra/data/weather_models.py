@@ -37,7 +37,7 @@ def fetch_openmeteo_models(lat: float, lon: float, client: OpenMeteoClient | Non
     client = client or OpenMeteoClient()
     params = {"latitude": lat, "longitude": lon, "hourly": ",".join(VARS), "models": ",".join(MODELS),
               "forecast_days": 3, "past_days": 1, "wind_speed_unit": "ms", "timezone": "GMT"}
-    payload = client.get_json(FORECAST_URL, params, use_cache=False)
+    payload = client.get_live(FORECAST_URL, params)
     h = payload["hourly"]
     idx = pd.to_datetime(h["time"], utc=True)
     out = {}
