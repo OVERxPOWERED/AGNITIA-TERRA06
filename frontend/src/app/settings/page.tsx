@@ -8,6 +8,7 @@ import { StepFields, clientError, setValue, visibleFields } from "@/components/p
 import { Button, PageHeader, Panel, PanelHeader, Spinner } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
 import { checkProfile } from "@/lib/profile-api";
+import { api } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import { isEntered, useActivePlant, type Value, type Values } from "@/lib/plant";
 
@@ -15,6 +16,7 @@ export default function PlantSettings() {
   const ap = useActivePlant();
   const auth = useAuth();
   const [keys, setKeys] = useState(ap.store.keys);
+  const [wa, setWa] = useState<string | null>(null);
   const [draft, setDraft] = useState<Values | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -111,6 +113,21 @@ export default function PlantSettings() {
                   <Button onClick={() => { ap.setKeys(keys); setNote("Keys saved in this browser. They are sent with each live forecast and never stored on the server."); }}>Save keys</Button>
                   <span className="text-[12px] text-muted">Keys stay in this browser, even when you are signed in.</span>
                 </div>
+              </div>
+            </Panel>
+            <Panel id="whatsapp">
+              <PanelHeader title="WhatsApp alerts" note="Critical alerts, including the warning to revise your schedule with the load despatch centre, are sent to the number in the Alerts section above. The server checks your plant every 30 minutes, even when this page is closed." />
+              <div className="space-y-3 px-4 pb-5 pt-4 text-[13px] sm:px-5">
+                {!auth.user ? <p className="text-muted">Sign in first: alerts are sent from the server, which needs your plant saved in an account.</p> : (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      <Button onClick={async () => { setWa("Sending…"); try { const r = await api<{ status: string; detail: string }>("/me/notify/test", { method: "POST" }); setWa(r.status === "sent" ? "Test message sent." : r.status === "logged" ? "No WhatsApp provider is set up on the server yet: the message was only logged." : `Failed: ${r.detail}`); } catch (e) { setWa(e instanceof Error ? e.message : "Failed."); } }}>Send a test message</Button>
+                      <Button onClick={async () => { setWa("Checking your plant…"); try { const r = await api<Record<string, number>>("/me/notify/check", { method: "POST" }); setWa(`Checked ${r.plants} plant: ${r.sent} sent, ${r.logged} logged, ${r.failed} failed.`); } catch (e) { setWa(e instanceof Error ? e.message : "Failed."); } }}>Check now</Button>
+                    </div>
+                    {wa && <p role="status" className="text-ink">{wa}</p>}
+                    <p className="text-muted">Save your settings first; the number and the on/off choice are read from your saved plant.</p>
+                  </>
+                )}
               </div>
             </Panel>
             <Panel>

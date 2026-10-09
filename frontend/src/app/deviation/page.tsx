@@ -3,6 +3,7 @@
 import React from "react";
 import { Download } from "lucide-react";
 import { PageHeader, Panel, PanelHeader, Pill, tableCls, tdCls, tdNum, thCls } from "@/components/ui/primitives";
+import ScheduleSubmit from "@/components/plant/ScheduleSubmit";
 import { QueryState } from "@/components/ui/states";
 import { useDsm } from "@/hooks/api";
 import { API_BASE } from "@/lib/api/client";
@@ -45,6 +46,13 @@ export default function DeviationPage() {
                 </p>
               )}
             </QueryState>
+          </div>
+        </Panel>
+        <Panel>
+          <div className="px-4 py-4 sm:px-5">
+            <h2 className="text-[15px] font-semibold tracking-tight">Submitted schedule</h2>
+            <p className="mb-3 mt-0.5 max-w-[70ch] text-[13px] text-muted">When a newer forecast moves more than the tolerance band away from the schedule you submitted for an hour or more, Vidyut raises a critical alert telling you to revise it with your load despatch centre.</p>
+            <ScheduleSubmit />
           </div>
         </Panel>
         <Panel>
