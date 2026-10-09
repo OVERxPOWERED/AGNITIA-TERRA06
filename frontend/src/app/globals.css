@@ -1,59 +1,137 @@
 @import "tailwindcss";
 
-/* Design tokens. Series colours are fixed meaning across every chart:
-   solar = amber, wind = teal, hybrid = indigo, demand = slate, battery = violet, backup = stone. */
+/* Design tokens for Vidyut.
+   Series colours have fixed semantic meanings across every chart:
+   solar = amber, wind = teal, hybrid = signal indigo, demand = slate, battery = violet, backup = stone. */
+
 :root {
-  --bg: #f7f7f5;
-  --panel: #ffffff;
-  --border: #e4e4e0;
-  --text: #1c1c1a;
-  --muted: #6b6b66;
-  --solar: #d97706;
-  --wind: #0d9488;
-  --hybrid: #4f46e5;
+  /* Light Theme: warm off-white canvas, crisp text, thin soft borders */
+  --bg: #F8F8F6;
+  --panel: #FFFFFF;
+  --panel-muted: #F1F1ED;
+  --border: #E2E2DC;
+  --text: #18181B;
+  --muted: #64645E;
+
+  /* Accent / Signal Colour: Deep Electric Indigo */
+  --accent: #4338CA;
+  --accent-subtle: #EEF2FF;
+
+  /* Domain Series Colours */
+  --solar: #B45309;
+  --wind: #0F766E;
+  --hybrid: #4338CA;
   --demand: #475569;
-  --battery: #7c3aed;
-  --backup: #78716c;
-  --good: #15803d;
-  --warn: #b45309;
-  --bad: #b91c1c;
+  --battery: #6D28D9;
+  --backup: #78716C;
+
+  /* Status / Alert Tones */
+  --good: #15803D;
+  --warn: #B45309;
+  --bad: #B91C1C;
+}
+
+html.dark, [data-theme="dark"] {
+  /* Dark Theme: soft slate-blue/charcoal surfaces (around #14181F - #1C2230) */
+  --bg: #14181F;
+  --panel: #1C2230;
+  --panel-muted: #242B3D;
+  --border: #2A344A;
+  --text: #F1F5F9;
+  --muted: #94A0B8;
+
+  /* Accent / Signal Colour: Luminous Indigo */
+  --accent: #818CF8;
+  --accent-subtle: #252D47;
+
+  /* Domain Series Colours */
+  --solar: #F59E0B;
+  --wind: #2DD4BF;
+  --hybrid: #818CF8;
+  --demand: #94A0B8;
+  --battery: #A78BFA;
+  --backup: #A8A29E;
+
+  /* Status / Alert Tones */
+  --good: #34D399;
+  --warn: #FBBF24;
+  --bad: #F87171;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1115;
-    --panel: #171a21;
-    --border: #2a2f3a;
-    --text: #e8e8e6;
-    --muted: #9a9ca3;
-    --solar: #f59e0b;
-    --wind: #2dd4bf;
-    --hybrid: #818cf8;
-    --demand: #94a3b8;
-    --battery: #a78bfa;
-    --backup: #a8a29e;
-    --good: #4ade80;
-    --warn: #fbbf24;
-    --bad: #f87171;
+  html:not([data-theme="light"]):not(.light) {
+    --bg: #14181F;
+    --panel: #1C2230;
+    --panel-muted: #242B3D;
+    --border: #2A344A;
+    --text: #F1F5F9;
+    --muted: #94A0B8;
+    --accent: #818CF8;
+    --accent-subtle: #252D47;
+    --solar: #F59E0B;
+    --wind: #2DD4BF;
+    --hybrid: #818CF8;
+    --demand: #94A0B8;
+    --battery: #A78BFA;
+    --backup: #A8A29E;
+    --good: #34D399;
+    --warn: #FBBF24;
+    --bad: #F87171;
   }
 }
 
 @theme inline {
   --color-bg: var(--bg);
   --color-panel: var(--panel);
+  --color-panel-muted: var(--panel-muted);
   --color-border: var(--border);
   --color-text: var(--text);
   --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-subtle: var(--accent-subtle);
   --color-solar: var(--solar);
   --color-wind: var(--wind);
   --color-hybrid: var(--hybrid);
+  --color-demand: var(--demand);
+  --color-battery: var(--battery);
+  --color-backup: var(--backup);
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
 }
 
 body {
-  background: var(--bg);
+  background-color: var(--bg);
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular figures for numeric precision */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle, smooth transitions for UI theme shifts and hover */
+button, a, input, select {
+  transition-property: color, background-color, border-color, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  transition-duration: 120ms;
+}
+
+/* Visible accessible focus rings */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Disabled motion when prefers-reduced-motion is requested */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
