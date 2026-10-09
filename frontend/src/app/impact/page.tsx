@@ -1,7 +1,7 @@
 "use client";
-/** Impact: CO2, backup, cost and DSM savings from the test-period backtest + labelled extrapolation. */
+/** Impact: what the planning saved over the test period, and a clearly labelled extrapolation to a larger fleet. */
 import React, { useState } from "react";
-import { Card, CardTitle, Kpi, RangeInput } from "@/components/ui/primitives";
+import { PageHeader, Panel, PanelHeader, RangeInput, Stat } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
 import { useImpact } from "@/hooks/api";
 import { inr, mwh } from "@/lib/format";
@@ -11,76 +11,39 @@ export default function ImpactPage() {
   const [fleet, setFleet] = useState(1000);
   const i = q.data?.impact as Record<string, number> | undefined;
   const f = i ? fleet / i.plant_capacity_mw : 0;
-
   return (
-    <div className="space-y-6">
-      <div className="border-b border-border/60 pb-3">
-        <h1 className="text-2xl font-bold tracking-tight text-text">Impact & Decarbonization</h1>
-        <p className="text-xs text-muted mt-0.5">
-          Quantified emissions abatement, cost avoidance, and fleet-scale extrapolation
-        </p>
-      </div>
-
-      <QueryState isLoading={q.isLoading} error={q.error} refetch={q.refetch}>
+    <>
+      <PageHeader title="Impact" description="What Vidyut-planned operation saved compared with planning on a persistence forecast, measured on days the models never saw." />
+      <QueryState isLoading={q.isLoading} error={q.error} refetch={q.refetch} height="h-64">
         {i && (
-          <>
-            <div className="rounded-xl border border-border/80 bg-panel-muted/30 p-4 text-xs text-muted">
-              Vidyut-planned vs persistence-planned operation over{" "}
-              <strong className="text-text">{i.period_days} held-out test days</strong>, on a{" "}
-              <strong className="text-text">{i.plant_capacity_mw} MW hybrid plant</strong>.
-            </div>
-
-            <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
-              <Kpi
-                label="CO₂ avoided"
-                value={`${i.co2_avoided_t.toFixed(0)} t`}
-                hint={`${i.emission_factor_t_per_mwh} tCO₂/MWh (CEA grid baseline)`}
-              />
-              <Kpi label="Backup energy avoided" value={mwh(i.backup_avoided_mwh)} hint="Diesel/grid generation saved" />
-              <Kpi label="Cost saved" value={inr(i.cost_saved_inr)} hint="Direct operational savings" />
-              <Kpi
-                label="Deviation charges saved"
-                value={i.dsm_charges_saved_inr != null ? inr(i.dsm_charges_saved_inr) : "—"}
-                hint="Illustrative regulatory rates"
-              />
-            </div>
-
-            <Card className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <CardTitle className="mb-0">
-                  Scale to a fleet (linear extrapolation — not a measured result)
-                </CardTitle>
-                <span className="text-xs text-muted">Slide to adjust portfolio capacity</span>
+          <div className="space-y-6">
+            <p className="text-[14px] text-muted">Over <span className="num text-ink">{i.period_days}</span> held-out days on a <span className="num text-ink">{i.plant_capacity_mw} MW</span> hybrid plant.</p>
+            <dl className="grid grid-cols-2 gap-y-6 lg:grid-cols-4 lg:divide-x lg:divide-line [&>div]:lg:px-6 [&>div:first-child]:lg:pl-0">
+              <Stat label="CO₂ avoided" value={`${i.co2_avoided_t.toFixed(0)} t`} note={`${i.emission_factor_t_per_mwh} tCO₂ per MWh, CEA grid baseline`} />
+              <Stat label="Backup energy avoided" value={mwh(i.backup_avoided_mwh)} note="Diesel or grid power not needed" />
+              <Stat label="Cost saved" value={inr(i.cost_saved_inr)} note="Direct operating cost" />
+              <Stat label="Deviation charges saved" value={i.dsm_charges_saved_inr != null ? inr(i.dsm_charges_saved_inr) : "—"} note="Illustrative rates" />
+            </dl>
+            <Panel>
+              <PanelHeader title="Scale to a fleet" note="A straight-line multiple of the figures above. It is an extrapolation, not a measured result." />
+              <div className="space-y-5 px-4 pb-5 pt-4 sm:px-5">
+                <RangeInput label="Fleet capacity" value={fleet} min={100} max={20000} step={100} onChange={setFleet} format={(v) => `${v.toLocaleString("en-IN")} MW`} />
+                <dl className="grid gap-5 sm:grid-cols-3">
+                  <Stat label="CO₂ avoided, estimated" value={`${(i.co2_avoided_t * f).toFixed(0)} t`} />
+                  <Stat label="Backup avoided, estimated" value={mwh(i.backup_avoided_mwh * f)} />
+                  <Stat label="Cost saved, estimated" value={inr(i.cost_saved_inr * f)} />
+                </dl>
               </div>
-              <RangeInput
-                label="Fleet capacity"
-                value={fleet}
-                min={100}
-                max={20000}
-                step={100}
-                onChange={setFleet}
-                format={(v) => `${v.toLocaleString("en-IN")} MW`}
-              />
-              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-3 pt-2">
-                <Kpi label="CO₂ avoided (est.)" value={`${(i.co2_avoided_t * f).toFixed(0)} t`} />
-                <Kpi label="Backup avoided (est.)" value={mwh(i.backup_avoided_mwh * f)} />
-                <Kpi label="Cost saved (est.)" value={inr(i.cost_saved_inr * f)} />
-              </div>
-            </Card>
-
-            <Card className="space-y-2">
-              <CardTitle>Methodology Sources</CardTitle>
-              <ul className="list-disc pl-5 text-xs text-muted space-y-1">
-                {q.data?.sources.map((s) => (
-                  <li key={s} className="leading-relaxed">
-                    {s}
-                  </li>
-                ))}
+            </Panel>
+            <Panel>
+              <PanelHeader title="How these were worked out" />
+              <ul className="list-disc space-y-1.5 px-9 pb-5 pt-3 text-[13px] text-muted">
+                {q.data?.sources.map((s) => <li key={s}>{s}</li>)}
               </ul>
-            </Card>
-          </>
+            </Panel>
+          </div>
         )}
       </QueryState>
-    </div>
+    </>
   );
 }

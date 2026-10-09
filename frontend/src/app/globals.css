@@ -1,94 +1,88 @@
 @import "tailwindcss";
 
-/* Design tokens for Vidyut.
-   Series colours have fixed semantic meanings across every chart:
-   solar = amber, wind = teal, hybrid = signal indigo, demand = slate, battery = violet, backup = stone. */
-
+/* Vidyut design tokens. Light is the primary theme (sage paper, forest ink-green accent);
+   dark keeps the same hues, brightened, on a deep green-charcoal. Series colours are fixed
+   meanings everywhere: solar = ochre, wind = teal, hybrid = forest, demand = slate. */
 :root {
-  /* Light Theme: warm off-white canvas, crisp text, thin soft borders */
-  --bg: #F8F8F6;
-  --panel: #FFFFFF;
-  --panel-muted: #F1F1ED;
-  --border: #E2E2DC;
-  --text: #18181B;
-  --muted: #64645E;
+  --paper: #edf0e8;
+  --surface: #fafbf7;
+  --sunken: #e4e9dd;
+  --ink: #17251e;
+  --muted: #586a60;
+  --faint: #8a998f;
+  --line: #d5dcce;
+  --line-strong: #bcc7b3;
 
-  /* Accent / Signal Colour: Deep Electric Indigo */
-  --accent: #4338CA;
-  --accent-subtle: #EEF2FF;
+  --accent: #1e5a43;
+  --accent-soft: #dcebe2;
+  --on-accent: #f6faf7;
 
-  /* Domain Series Colours */
-  --solar: #B45309;
-  --wind: #0F766E;
-  --hybrid: #4338CA;
-  --demand: #475569;
-  --battery: #6D28D9;
-  --backup: #78716C;
+  --solar: #b0700f;
+  --wind: #1f8a7d;
+  --hybrid: #1e5a43;
+  --demand: #5a6b8a;
+  --battery: #6d5fb8;
+  --backup: #8b8578;
 
-  /* Status / Alert Tones */
-  --good: #15803D;
-  --warn: #B45309;
-  --bad: #B91C1C;
+  --good: #2b7a4f;
+  --warn: #a2690a;
+  --bad: #b5472e;
+  --good-soft: #dcebe2;
+  --warn-soft: #f3e6c8;
+  --bad-soft: #f3dcd4;
+
+  --console: #16211b;
+  --console-ink: #cfe0d5;
+  --shadow: 0 1px 0 rgb(23 37 30 / 0.04);
+  color-scheme: light;
 }
 
-html.dark, [data-theme="dark"] {
-  /* Dark Theme: soft slate-blue/charcoal surfaces (around #14181F - #1C2230) */
-  --bg: #14181F;
-  --panel: #1C2230;
-  --panel-muted: #242B3D;
-  --border: #2A344A;
-  --text: #F1F5F9;
-  --muted: #94A0B8;
+html.dark {
+  --paper: #0f1512;
+  --surface: #161e1a;
+  --sunken: #1c2622;
+  --ink: #e7efe9;
+  --muted: #93a39a;
+  --faint: #667870;
+  --line: #25312b;
+  --line-strong: #364639;
 
-  /* Accent / Signal Colour: Luminous Indigo */
-  --accent: #818CF8;
-  --accent-subtle: #252D47;
+  --accent: #5fc49a;
+  --accent-soft: #1b2e26;
+  --on-accent: #0c1511;
 
-  /* Domain Series Colours */
-  --solar: #F59E0B;
-  --wind: #2DD4BF;
-  --hybrid: #818CF8;
-  --demand: #94A0B8;
-  --battery: #A78BFA;
-  --backup: #A8A29E;
+  --solar: #f0b13c;
+  --wind: #4ccfc0;
+  --hybrid: #5fc49a;
+  --demand: #9cabc8;
+  --battery: #a99bf0;
+  --backup: #a8a293;
 
-  /* Status / Alert Tones */
-  --good: #34D399;
-  --warn: #FBBF24;
-  --bad: #F87171;
-}
+  --good: #5fc49a;
+  --warn: #e9b24a;
+  --bad: #ee8d74;
+  --good-soft: #1b2e26;
+  --warn-soft: #33290f;
+  --bad-soft: #3a211b;
 
-@media (prefers-color-scheme: dark) {
-  html:not([data-theme="light"]):not(.light) {
-    --bg: #14181F;
-    --panel: #1C2230;
-    --panel-muted: #242B3D;
-    --border: #2A344A;
-    --text: #F1F5F9;
-    --muted: #94A0B8;
-    --accent: #818CF8;
-    --accent-subtle: #252D47;
-    --solar: #F59E0B;
-    --wind: #2DD4BF;
-    --hybrid: #818CF8;
-    --demand: #94A0B8;
-    --battery: #A78BFA;
-    --backup: #A8A29E;
-    --good: #34D399;
-    --warn: #FBBF24;
-    --bad: #F87171;
-  }
+  --console: #0a0f0d;
+  --console-ink: #b9cfc2;
+  --shadow: none;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-panel: var(--panel);
-  --color-panel-muted: var(--panel-muted);
-  --color-border: var(--border);
-  --color-text: var(--text);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
-  --color-accent-subtle: var(--accent-subtle);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
   --color-solar: var(--solar);
   --color-wind: var(--wind);
   --color-hybrid: var(--hybrid);
@@ -98,40 +92,89 @@ html.dark, [data-theme="dark"] {
   --color-good: var(--good);
   --color-warn: var(--warn);
   --color-bad: var(--bad);
+  --color-good-soft: var(--good-soft);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad-soft: var(--bad-soft);
+  --color-console: var(--console);
+  --color-console-ink: var(--console-ink);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Tabular figures for numeric precision */
-.tabular-nums {
+/* Numerals line up everywhere they appear. */
+.num {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
-/* Subtle, smooth transitions for UI theme shifts and hover */
-button, a, input, select {
-  transition-property: color, background-color, border-color, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-  transition-duration: 120ms;
-}
-
-/* Visible accessible focus rings */
-button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 6px;
 }
 
-/* Disabled motion when prefers-reduced-motion is requested */
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* Thin, quiet scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading placeholder: a slow breathe, not a shimmer sweep. */
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.skeleton {
+  background: var(--sunken);
+  border-radius: 8px;
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Short, quiet feedback only. */
+.t-colors {
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
-    animation-duration: 0.01ms !important;
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
 }

@@ -1,65 +1,15 @@
-import {
-  LayoutDashboard,
-  LineChart,
-  Cpu,
-  ShieldCheck,
-  Bell,
-  BatteryCharging,
-  Sliders,
-  ShieldAlert,
-  Sparkles,
-  BookOpen,
-  type LucideIcon,
-} from "lucide-react";
+export interface NavItem { href: string; label: string; slug: string }
 
-export type NavItem = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-};
-
-export type NavGroup = {
-  title: string;
-  items: NavItem[];
-};
-
-export const NAV_GROUPS: NavGroup[] = [
-  {
-    title: "Overview",
-    items: [
-      { href: "/", label: "Control Room", icon: LayoutDashboard },
-      { href: "/forecast", label: "Forecast", icon: LineChart },
-    ],
-  },
-  {
-    title: "Performance",
-    items: [
-      { href: "/models", label: "Models & Accuracy", icon: Cpu },
-      { href: "/trust", label: "Trust", icon: ShieldCheck },
-    ],
-  },
-  {
-    title: "Operations",
-    items: [
-      { href: "/alerts", label: "Alerts", icon: Bell },
-      { href: "/dispatch", label: "Dispatch", icon: BatteryCharging },
-      { href: "/whatif", label: "What-if", icon: Sliders },
-    ],
-  },
-  {
-    title: "Business",
-    items: [
-      { href: "/deviation", label: "Deviation Shield", icon: ShieldAlert },
-      { href: "/impact", label: "Impact", icon: Sparkles },
-    ],
-  },
-  {
-    title: "Reference",
-    items: [
-      { href: "/assumptions", label: "Assumptions", icon: BookOpen },
-    ],
-  },
+/** Order matches the tab bar. `slug` is the readable page name in the breadcrumb. */
+export const NAV: NavItem[] = [
+  { href: "/", label: "Control Room", slug: "control-room" },
+  { href: "/forecast", label: "Forecast", slug: "forecast" },
+  { href: "/models", label: "Models & Accuracy", slug: "models" },
+  { href: "/trust", label: "Trust", slug: "trust" },
+  { href: "/alerts", label: "Alerts", slug: "alerts" },
+  { href: "/dispatch", label: "Dispatch", slug: "dispatch" },
+  { href: "/whatif", label: "What-if", slug: "what-if" },
+  { href: "/deviation", label: "Deviation Shield", slug: "deviation-shield" },
+  { href: "/impact", label: "Impact", slug: "impact" },
+  { href: "/assumptions", label: "Assumptions", slug: "assumptions" },
 ];
-
-// Flat list for simple lookup
-export const NAV = NAV_GROUPS.flatMap((g) => g.items);

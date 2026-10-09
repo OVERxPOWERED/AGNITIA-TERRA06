@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Deviation Shield",
+  title: "Deviation shield",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Battery Dispatch",
+  title: "Battery dispatch",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

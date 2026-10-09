@@ -1,84 +1,32 @@
 "use client";
-/** ECharts wrapper: theme-aware, responsive resize, reduced-motion respecting. */
+/** Thin ECharts wrapper. Colours come from the option (built with the active palette), so a theme change simply
+ *  produces a new option; the chart redraws in place. Animation runs once and is off for reduced-motion users. */
 import * as echarts from "echarts";
 import React, { useEffect, useRef } from "react";
-import { useTheme } from "@/lib/theme";
 
-export default function EChart({
-  option,
-  height = 320,
-  ariaLabel,
-}: {
-  option: object;
-  height?: number;
-  ariaLabel: string;
-}) {
+export default function EChart({ option, height = 320, ariaLabel }: { option: echarts.EChartsOption; height?: number; ariaLabel: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.ECharts | null>(null);
-  const { resolvedTheme } = useTheme();
 
-  const prevTheme = useRef<string | null>(null);
-
-  // Initialize or update chart when DOM mounts, theme changes, or option changes
   useEffect(() => {
-    if (!ref.current) return;
+    const el = ref.current;
+    if (!el) return;
+    if (!chart.current) chart.current = echarts.init(el, undefined, { renderer: "canvas" });
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    chart.current.setOption({ animation: !reduce, animationDuration: 450, animationEasing: "cubicOut", ...option }, true);
+  }, [option]);
 
-    const isDark = resolvedTheme === "dark";
-
-    if (chart.current && prevTheme.current !== resolvedTheme) {
-      chart.current.dispose();
-      chart.current = null;
-    }
-    prevTheme.current = resolvedTheme;
-
-    if (!chart.current) {
-      chart.current = echarts.init(ref.current, isDark ? "dark" : undefined, {
-        renderer: "canvas",
-      });
-      (ref.current as HTMLElement & { __echarts_instance__?: echarts.ECharts }).__echarts_instance__ = chart.current;
-    }
-
-    const reducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    chart.current.setOption(
-      {
-        backgroundColor: "transparent",
-        animation: !reducedMotion,
-        animationDuration: 500,
-        animationEasing: "cubicOut",
-        aria: { enabled: true },
-        ...option,
-      } as echarts.EChartsOption,
-      true
-    );
-
-    const ro = new ResizeObserver(() => {
-      chart.current?.resize();
-    });
-    ro.observe(ref.current);
-
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => chart.current?.resize());
+    ro.observe(el);
     return () => {
       ro.disconnect();
-    };
-  }, [resolvedTheme, option]);
-
-  // Clean up on component unmount
-  useEffect(() => {
-    return () => {
       chart.current?.dispose();
       chart.current = null;
     };
   }, []);
 
-  return (
-    <div
-      ref={ref}
-      role="img"
-      aria-label={ariaLabel}
-      style={{ width: "100%", height }}
-      className="min-w-0 max-w-full overflow-hidden"
-    />
-  );
+  return <div ref={ref} role="img" aria-label={ariaLabel} style={{ width: "100%", height }} className="min-w-0 max-w-full" />;
 }

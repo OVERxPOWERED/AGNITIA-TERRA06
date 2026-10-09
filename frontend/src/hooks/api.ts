@@ -43,8 +43,12 @@ export const useForecast = (source: Source, horizon = 48) =>
   useQuery({ queryKey: ["forecast", source, horizon], queryFn: () => api<ForecastResponse>(`/forecast?source=${source}&horizon=${horizon}`), ...LIVE });
 export const useHistory = (source: "solar" | "wind", model = "ensemble") =>
   useQuery({ queryKey: ["history", source, model], queryFn: () => api<HistoryResponse>(`/forecast/history?source=${source}&model=${model}`), ...RETRY_CONFIG });
-export const useModels = (source: "solar" | "wind", by?: "lead_bucket") =>
-  useQuery({ queryKey: ["models", source, by], queryFn: () => api<ModelsResponse>(`/models/compare?source=${source}${by ? `&by=${by}` : ""}`), ...RETRY_CONFIG });
+export const useModels = (source: "solar" | "wind", by?: "lead_bucket", daylight = false) =>
+  useQuery({
+    queryKey: ["models", source, by, daylight],
+    queryFn: () => api<ModelsResponse>(`/models/compare?source=${source}${by ? `&by=${by}` : ""}${daylight ? "&daylight=true" : ""}`),
+    ...RETRY_CONFIG,
+  });
 export const useAlerts = () => useQuery({ queryKey: ["alerts"], queryFn: () => api<AlertOut[]>("/alerts"), ...LIVE });
 export const useDispatch = (strategy: "advisor" | "rule" | "none" = "advisor") =>
   useQuery({ queryKey: ["dispatch", strategy], queryFn: () => api<DispatchResponse>(`/dispatch?strategy=${strategy}`), ...LIVE });

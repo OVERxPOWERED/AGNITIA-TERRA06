@@ -1,116 +1,68 @@
 "use client";
-/** Deviation Shield: DSM charges by strategy (test period) + download next-day 96-block schedule. */
+/** Deviation shield: estimated deviation charges by scheduling strategy, plus the next-day 96-block schedule to download. */
 import React from "react";
 import { Download } from "lucide-react";
-import { Badge, Card, CardTitle } from "@/components/ui/primitives";
+import { PageHeader, Panel, PanelHeader, Pill, tableCls, tdCls, tdNum, thCls } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
 import { useDsm } from "@/hooks/api";
 import { API_BASE } from "@/lib/api/client";
 import { inr, pct } from "@/lib/format";
 
+const STRATEGY: Record<string, string> = { persistence: "Persistence schedule", terra_optimized: "Vidyut optimised", terra_p50: "Vidyut median forecast" };
+
 export default function DeviationPage() {
   const dsm = useDsm();
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-text">Deviation Shield</h1>
-          <p className="text-xs text-muted mt-0.5">
-            Deviation Settlement Mechanism (DSM) penalty risk assessment & optimized schedule
-          </p>
-        </div>
-        {dsm.data?.illustrative_rates && (
-          <Badge tone="warn" className="text-xs py-1 px-3">
-            Illustrative rates — verify before quoting
-          </Badge>
-        )}
-      </div>
-
-      <Card className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="mb-0">
-            Estimated deviation charges on held-out days (15-min blocks, day-ahead schedule)
-          </CardTitle>
-          <span className="text-xs text-muted">CERC DSM regulation simulation</span>
-        </div>
-        <QueryState isLoading={dsm.isLoading} error={dsm.error} refetch={dsm.refetch}>
-          <div className="overflow-x-auto rounded-lg border border-border/80">
-            <table className="w-full text-sm tabular-nums">
-              <thead className="text-left text-xs uppercase tracking-wider text-muted bg-panel-muted/50 border-b border-border">
-                <tr>
-                  <th className="px-3 py-2.5 font-semibold">Source</th>
-                  <th className="px-3 py-2.5 font-semibold">Schedule strategy</th>
-                  <th className="px-3 py-2.5 font-semibold">Charges</th>
-                  <th className="px-3 py-2.5 font-semibold">Blocks outside tolerance</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {dsm.data?.rows.map((r) => {
-                  const isOptimized = r.strategy === "terra_optimized";
-                  return (
-                    <tr
-                      key={r.source + r.strategy}
-                      className={
-                        isOptimized
-                          ? "bg-accent/10 font-semibold text-text"
-                          : "hover:bg-panel-muted/30 transition-colors"
-                      }
-                    >
-                      <td className="px-3 py-2.5 capitalize font-medium">{r.source}</td>
-                      <td className="px-3 py-2.5">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span>{r.strategy.replace("_", " ")}</span>
-                          {isOptimized && (
-                            <span className="text-[10px] rounded bg-accent/20 text-accent font-semibold px-1.5 py-0.5 uppercase">
-                              Optimized
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 font-semibold">{inr(r.charge_inr)}</td>
-                      <td className="px-3 py-2.5">{pct(r.blocks_outside_tolerance_pct)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+    <>
+      <PageHeader
+        title="Deviation shield"
+        description="If a plant delivers more or less than it scheduled, the grid charges for the difference. This page shows what that would have cost with different day-ahead schedules."
+        actions={dsm.data?.illustrative_rates ? <Pill tone="warn">Illustrative rates. Check before quoting.</Pill> : undefined}
+      />
+      <div className="space-y-6">
+        <Panel>
+          <PanelHeader title="Estimated deviation charges on held-out days" note="15-minute blocks, day-ahead schedule, simulating the CERC deviation framework." />
+          <div className="px-2 pb-4 pt-3 sm:px-3">
+            <QueryState isLoading={dsm.isLoading} error={dsm.error} refetch={dsm.refetch}>
+              <div className="overflow-x-auto">
+                <table className={tableCls}>
+                  <thead><tr><th className={thCls}>Source</th><th className={thCls}>Schedule</th><th className={`${thCls} text-right`}>Charges</th><th className={`${thCls} text-right`}>Blocks outside tolerance</th></tr></thead>
+                  <tbody>
+                    {dsm.data?.rows.map((r) => (
+                      <tr key={r.source + r.strategy} className={r.strategy === "terra_optimized" ? "bg-accent-soft/60" : "hover:bg-sunken/60"}>
+                        <td className={`${tdCls} font-medium capitalize`}>{r.source}</td>
+                        <td className={tdCls}>{STRATEGY[r.strategy] ?? r.strategy.replaceAll("_", " ")}</td>
+                        <td className={`${tdNum} text-right`}>{inr(r.charge_inr)}</td>
+                        <td className={`${tdNum} text-right`}>{pct(r.blocks_outside_tolerance_pct)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {dsm.data && (
+                <p className="mt-3 max-w-[80ch] px-1 text-[12px] text-muted">
+                  The optimised schedule is set at {Object.entries(dsm.data.chosen_level).map(([k, v]) => `${k} P${Math.round(v * 100)}`).join(" and ")}. Tolerance is 5% for solar and 10% for wind under the framework that applies from 1 April 2026. The rupee rates are placeholders, so treat the charges as relative, not absolute.
+                </p>
+              )}
+            </QueryState>
           </div>
-          {dsm.data && (
-            <p className="mt-2 text-xs text-muted leading-relaxed">
-              Optimized schedule level:{" "}
-              <strong className="text-text">
-                {Object.entries(dsm.data.chosen_level)
-                  .map(([k, v]) => `${k} P${Math.round(v * 100)}`)
-                  .join(", ")}
-              </strong>
-              . Tolerances: solar ±5%, wind ±10% (CERC DSM framework, applicable from 1 Apr 2026).
-            </p>
-          )}
-        </QueryState>
-      </Card>
-
-      <Card className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5">
-        <div className="space-y-1">
-          <CardTitle className="mb-0">Next-day schedule (96 × 15-min blocks, IST)</CardTitle>
-          <p className="text-xs text-muted">
-            Export regulatory submission schedules generated from the latest calibrated forecast.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 shrink-0">
-          {(["hybrid", "solar", "wind"] as const).map((s) => (
-            <a
-              key={s}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3.5 py-2 text-xs font-medium text-text hover:bg-border/60 transition-colors shadow-xs"
-              href={`${API_BASE}/dsm/schedule.csv?source=${s}`}
-              download={`terra_schedule_${s}.csv`}
-            >
-              <Download className="h-3.5 w-3.5 text-muted" />
-              <span>Download {s} CSV</span>
-            </a>
-          ))}
-        </div>
-      </Card>
-    </div>
+        </Panel>
+        <Panel>
+          <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+            <div>
+              <h2 className="text-[15px] font-semibold tracking-tight">Next-day schedule</h2>
+              <p className="mt-0.5 max-w-[60ch] text-[13px] text-muted">96 blocks of 15 minutes in IST, generated from the latest forecast. Download as CSV.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(["hybrid", "solar", "wind"] as const).map((s) => (
+                <a key={s} href={`${API_BASE}/dsm/schedule.csv?source=${s}`} download={`vidyut_schedule_${s}.csv`} className="t-colors inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[13px] font-medium capitalize hover:bg-sunken">
+                  <Download className="h-3.5 w-3.5 text-muted" aria-hidden />{s} CSV
+                </a>
+              ))}
+            </div>
+          </div>
+        </Panel>
+      </div>
+    </>
   );
 }
