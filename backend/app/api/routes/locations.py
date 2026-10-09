@@ -18,7 +18,8 @@ def locations() -> list[LocationInfo]:
 @router.post("/locations/{location_id}/forecast", response_model=LocationJob)
 def start(location_id: str, body: ProfileBody | None = None, force: bool = False):
     """Start (or reuse, if under 30 minutes old) a live forecast for one allowlisted site, with the caller's plant profile."""
-    out = svc.submit(location_id, dict(body.values) if body else {}, force)
+    out = svc.submit(location_id, dict(body.values) if body else {}, force,
+                     calibration=body.calibration if body else None, keys=body.keys if body else None)
     if out is None:
         raise HTTPException(404, f"unknown location {location_id!r}")
     if isinstance(out, ProfileCheck):

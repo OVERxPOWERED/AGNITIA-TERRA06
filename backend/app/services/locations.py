@@ -17,14 +17,26 @@ from datetime import datetime, timedelta, timezone
 import pandas as pd
 from terra.config import load_config
 from terra.data.openmeteo import ATTRIBUTION
+from terra.data.weather_models import LABELS
 from terra.locations import Location, get_location, load_locations
 from terra.logs import get_logger
 from terra.paths import ARTIFACTS
 from terra.pipelines.forecast import run_forecast
 from terra.profile import apply_profile, defaults, schema, validate
 
-from app.schemas.api import (AlertOut, DispatchPoint, ForecastPoint, Kpis, LocationInfo, LocationJob,
-                             LocationResult, PlantSummary, ProfileCheck)
+from app.schemas.api import (
+    AlertOut,
+    DispatchPoint,
+    ForecastPoint,
+    Kpis,
+    LocationInfo,
+    LocationJob,
+    LocationResult,
+    PlantSummary,
+    ProfileCheck,
+    WeatherModelPoint,
+    WeatherModelSeries,
+)
 
 log = get_logger(__name__)
 ROOT = ARTIFACTS / "runs_location"
@@ -56,11 +68,12 @@ def profile_schema() -> dict:
     return schema(load_config(), _home())
 
 
-def _summary(loc: Location, clean: dict) -> PlantSummary:
-    a = apply_profile(load_config(), loc, clean)
+def _summary(loc: Location, clean: dict, calibration: dict | None = None) -> PlantSummary:
+    a = apply_profile(load_config(), loc, clean, calibration)
     base = defaults(load_config(), _home())
     changed = [k for k, v in clean.items() if k in base and v != base[k] and k not in ("plant_name", "operator", "location_id")]
-    return PlantSummary(**a.summary, entered=sorted(clean), customised=bool(changed))
+    return PlantSummary(**{k: v for k, v in a.summary.items() if k != "location"}, location=loc.name,
+                        entered=sorted(clean), customised=bool(changed) or bool(a.calibration))
 
 
 def check_profile(values: dict, location_id: str | None = None) -> ProfileCheck:
@@ -70,8 +83,22 @@ def check_profile(values: dict, location_id: str | None = None) -> ProfileCheck:
     return ProfileCheck(clean=clean, errors=errors, summary=_summary(loc, clean) if loc and not errors else None)
 
 
-def _key(clean: dict) -> str:
-    return hashlib.sha1(json.dumps(clean, sort_keys=True).encode()).hexdigest()[:10]
+def _key(clean: dict, calibration: dict, keys: dict) -> str:
+    blob = json.dumps({"p": clean, "c": calibration, "k": {n: hashlib.sha256(v.encode()).hexdigest() for n, v in keys.items()}},
+                      sort_keys=True, default=str)
+    return hashlib.sha1(blob.encode()).hexdigest()[:10]
+
+
+def clean_calibration(c: dict | None) -> dict[str, float]:
+    out = {}
+    for k, v in (c or {}).items():
+        try:
+            x = float(v)
+        except (TypeError, ValueError):
+            continue
+        if k in ("solar", "wind") and 0.3 <= x <= 1.6:
+            out[k] = x
+    return out
 
 
 def _view(j: dict, reused: bool = False) -> LocationJob:
@@ -96,16 +123,19 @@ def _run(job: dict) -> None:
     loc = get_location(job["loc"])
     try:
         job["status"] = "running"
-        applied = apply_profile(load_config(), loc, job["clean"])
+        applied = apply_profile(load_config(), loc, job["clean"], job["calibration"])
         out = run_forecast(applied.user_cfg, "live", runs_dir=ROOT / loc.id / job["key"], write_latest=False,
-                           progress=lambda s: job.__setitem__("step", s), model_cfg=applied.model_cfg)
+                           progress=lambda s: job.__setitem__("step", s), model_cfg=applied.model_cfg,
+                           adjust=applied, second_opinions=True, api_keys=job["keys"])
+        job["keys"] = {}                                    # provider keys are used once and dropped
         job.update(status="done", step="done", finished=_now(), run_dir=out)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         log.exception("location forecast failed for %s", loc.id)
         job.update(status="failed", error=f"{type(exc).__name__}: {exc}", finished=_now())
 
 
-def submit(loc_id: str, values: dict | None = None, force: bool = False) -> LocationJob | ProfileCheck | None:
+def submit(loc_id: str, values: dict | None = None, force: bool = False, calibration: dict | None = None,
+           keys: dict | None = None) -> LocationJob | ProfileCheck | None:
     loc = get_location(loc_id)
     if loc is None:
         return None
@@ -113,12 +143,15 @@ def submit(loc_id: str, values: dict | None = None, force: bool = False) -> Loca
     if chk.errors:
         return chk
     clean = {k: v for k, v in chk.clean.items() if k != "location_id"}
-    key = _key(clean)
+    cal = clean_calibration(calibration)
+    keys = {k: str(v).strip() for k, v in (keys or {}).items() if k in ("solcast", "tomorrow") and str(v).strip()}
+    key = _key(clean, cal, keys)
     with _lock:
         j = None if force else _fresh(loc_id, key)
         if j is not None:
             return _view(j, reused=True)
-        j = {"id": uuid.uuid4().hex[:12], "loc": loc_id, "key": key, "clean": clean, "status": "queued",
+        j = {"id": uuid.uuid4().hex[:12], "loc": loc_id, "key": key, "clean": clean, "calibration": cal, "keys": keys,
+             "status": "queued",
              "step": "queued", "started": _now()}
         _jobs[j["id"]] = j
         _pool.submit(_run, j)
@@ -151,17 +184,34 @@ def result(job_id: str) -> LocationResult | None:
           for k, g in disp.groupby("strategy")}
     kall = {k: Kpis(**v) for k, v in json.loads((d / "dispatch_kpis.json").read_text()).items()}
     alerts = [AlertOut(**{**a, "acknowledged": False}) for a in json.loads((d / "alerts.json").read_text())]
-    plant = _summary(loc, j["clean"])
+    plant = _summary(loc, j["clean"], j["calibration"])
+    hyb = fc[fc["source"] == "hybrid"].sort_values("lead_h")
+    curtailed = hyb["export_curtailed_mw"].fillna(0).round(3).tolist() if "export_curtailed_mw" in hyb else []
+    second = []
+    status_p, table_p = d / "weather_models.json", d / "weather_models.parquet"
+    status = json.loads(status_p.read_text()) if status_p.exists() else {}
+    if table_p.exists():
+        t = pd.read_parquet(table_p)
+        t["target_time_utc"] = pd.to_datetime(t["target_time_utc"], utc=True).dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        t = t.astype(object).where(t.notna(), None)
+        for m, g in t.groupby("model", sort=False):
+            pts = [WeatherModelPoint(**r) for r in g[list(WeatherModelPoint.model_fields)].to_dict(orient="records")]
+            second.append(WeatherModelSeries(id=m, label=LABELS.get(m, m), status=status.get(m, "ok"), points=pts))
+    for m, st in status.items():
+        if not any(x.id == m for x in second):
+            second.append(WeatherModelSeries(id=m, label=LABELS.get(m, m), status=st, points=[]))
     home = info(loc).is_home
     caveat = ("This is the home site. The models were trained and tested here, on real weather and a virtual twin plant."
               if home else
               "The models were trained and tested only at Dewas, so accuracy here is not validated. "
               "Treat it as a live what-if, not a verified forecast.")
     if plant.customised:
-        caveat += (" Capacities are scaled from the Dewas plant on the assumption of the same technology; "
+        caveat += (" Your plant's layout is applied through the physics model (the hourly ratio of your plant's physics "
+                   "output to the trained plant's), then equipment availability, panel condition and calibration; "
                    "battery, demand and alert settings come from your plant profile.")
     return LocationResult(
         location=info(loc), issue_time_utc=meta["issue_time_utc"], generated_at=meta["created_at"],
         solar=_points(fc, "solar"), wind=_points(fc, "wind"), hybrid=_points(fc, "hybrid"),
         dispatch=by["advisor"], kpis=kall["advisor"], dispatch_by_strategy=by, kpis_by_strategy=kall, alerts=alerts, validated_here=home and not plant.customised, caveat=caveat,
-        attribution=ATTRIBUTION, plant=plant)
+        attribution=ATTRIBUTION, plant=plant, second_opinions=second, export_curtailed_mw=curtailed,
+        export_curtailed_mwh=round(float(sum(curtailed)), 2))

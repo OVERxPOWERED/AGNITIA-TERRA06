@@ -1,7 +1,7 @@
 """Response/request models. The frontend's TypeScript types are generated from these (make types)."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -190,7 +190,7 @@ class LocationJob(BaseModel):
     job_id: str
     location_id: str
     status: Literal["queued", "running", "done", "failed"]
-    step: Literal["queued", "weather", "models", "plan", "done"]
+    step: Literal["queued", "weather", "models", "plan", "second", "done"]
     started_at: str
     finished_at: str | None = None
     error: str | None = None
@@ -209,14 +209,36 @@ class PlantSummary(BaseModel):
     wind_scale: float
     entered: list[str]
     customised: bool
+    sources: str = "hybrid"
+    export_limit_mw: float | None = None
+    calibration: dict[str, float] = {}
+    derate_now: dict[str, float] = {}
 
 
 class ProfileBody(BaseModel):
-    values: dict[str, str | float | int | None] = {}
+    values: dict[str, Any] = {}
+    calibration: dict[str, float] = {}
+    keys: dict[str, str] = {}               # optional provider keys (solcast, tomorrow); used for this run only
+
+
+class WeatherModelPoint(BaseModel):
+    target_time_utc: str
+    solar_mw: float | None
+    wind_mw: float | None
+    hybrid_mw: float | None
+    ghi: float | None
+    ws100: float | None
+
+
+class WeatherModelSeries(BaseModel):
+    id: str
+    label: str
+    status: str
+    points: list[WeatherModelPoint]
 
 
 class ProfileCheck(BaseModel):
-    clean: dict[str, str | float | int]
+    clean: dict[str, Any]
     errors: dict[str, str]
     summary: PlantSummary | None = None
 
@@ -237,3 +259,50 @@ class LocationResult(BaseModel):
     caveat: str
     attribution: str
     plant: PlantSummary
+    second_opinions: list[WeatherModelSeries] = []
+    export_curtailed_mw: list[float] = []
+    export_curtailed_mwh: float = 0.0
+
+
+# ---- accounts ----
+class AuthIn(BaseModel):
+    email: str
+    password: str
+    name: str = ""
+
+
+class UserOut(BaseModel):
+    id: str
+    email: str
+    name: str
+    created_at: str
+
+
+class AuthOut(BaseModel):
+    token: str
+    user: UserOut
+
+
+class PlantStored(BaseModel):
+    site_id: str | None = None
+    live_home: bool = False
+    values: dict[str, Any] = {}
+    calibration: dict[str, Any] = {}
+    version: int = 0
+    updated_at: str | None = None
+
+
+class PlantIn(BaseModel):
+    values: dict[str, Any] | None = None
+    site_id: str | None = None
+    live_home: bool | None = None
+    calibration: dict[str, Any] | None = None
+
+
+class CalibrationIn(BaseModel):
+    csv: str
+    timezone: str = "Asia/Kolkata"
+    stamp: Literal["start", "end"] = "start"
+    unit: Literal["MW", "kW"] = "MW"
+    values: dict[str, Any] = {}
+    location_id: str | None = None

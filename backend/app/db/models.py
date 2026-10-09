@@ -181,3 +181,29 @@ def acknowledge(alert_id: str) -> bool:
         s.add(row)
         s.commit()
         return True
+
+
+# ---------- accounts (optional login) ----------
+class UserRow(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    email: str = Field(index=True, unique=True)
+    name: str = ""
+    password_hash: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class SessionRow(SQLModel, table=True):
+    token_hash: str = Field(primary_key=True)        # sha256 of the bearer token; the token itself is never stored
+    user_id: str = Field(index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: datetime
+
+
+class PlantRow(SQLModel, table=True):
+    user_id: str = Field(primary_key=True)
+    site_id: str | None = None
+    live_home: bool = False
+    values_json: str = "{}"                           # plant profile (validated by terra.profile)
+    calibration_json: str = "{}"                      # factors + report from the measured-history upload
+    version: int = 0
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
