@@ -1,5 +1,7 @@
 # TERRA — one command per task. Recipe lines MUST start with a TAB character.
-PY ?= python
+# Use the project virtualenv when it exists, so commands work without activating it (any shell, fish included).
+BIN := $(if $(wildcard $(CURDIR)/.venv/bin/python),$(CURDIR)/.venv/bin/,)
+PY ?= $(BIN)python
 ML_ENV = cd ml &&
 API_ENV = cd backend &&
 
@@ -18,50 +20,50 @@ setup-web:
 	cd frontend && npm install
 
 data:            ## real weather (needs internet) -> dataset
-	terra fetch-weather && terra build-dataset
+	$(BIN)terra fetch-weather && $(BIN)terra build-dataset
 
 data-synthetic:  ## offline development only — never report these numbers
-	terra build-dataset --synthetic
+	$(BIN)terra build-dataset --synthetic
 
 frame:
-	terra frame
+	$(BIN)terra frame
 
 calibrate:
-	terra calibrate
+	$(BIN)terra calibrate
 
 real-benchmark:
-	terra real-benchmark
+	$(BIN)terra real-benchmark
 
 train: frame
-	terra train $(if $(CHRONOS),--chronos-dir $(CHRONOS),)
+	$(BIN)terra train $(if $(CHRONOS),--chronos-dir $(CHRONOS),)
 
 evaluate:
-	terra evaluate
+	$(BIN)terra evaluate
 
 report:
-	terra report
+	$(BIN)terra report
 
 forecast:
-	terra forecast --mode $(or $(MODE),replay)
+	$(BIN)terra forecast --mode $(or $(MODE),replay)
 
 demo-synthetic: data-synthetic train evaluate report forecast  ## full offline pipeline in ~3 min
 
 api:
-	$(API_ENV) uvicorn app.main:app --reload --port 8000
+	$(API_ENV) $(BIN)uvicorn app.main:app --reload --port 8000
 
 web:
-	cd frontend && npm run dev
+	cd frontend && NEXT_PUBLIC_API_BASE=$(or $(API),http://localhost:8000) npm run dev   ## API=https://... to use another backend
 
 test: test-ml test-backend
 
 test-ml:
-	$(ML_ENV) pytest -q
+	$(ML_ENV) $(BIN)pytest -q
 
 test-backend:
-	$(API_ENV) TERRA_SCHEDULER_ENABLED=false pytest -q
+	$(API_ENV) TERRA_SCHEDULER_ENABLED=false $(BIN)pytest -q
 
 lint:
-	ruff check ml backend
+	$(BIN)ruff check ml backend
 	cd frontend && npm run lint && npx tsc --noEmit
 
 types:           ## regenerate frontend/src/lib/api/schema.d.ts from the FastAPI OpenAPI schema (no server needed)
@@ -69,7 +71,7 @@ types:           ## regenerate frontend/src/lib/api/schema.d.ts from the FastAPI
 	cd frontend && npx openapi-typescript openapi.json -o src/lib/api/schema.d.ts
 
 export-kaggle:
-	terra export-kaggle
+	$(BIN)terra export-kaggle
 
 clean-artifacts:
 	rm -rf artifacts/models artifacts/backtests artifacts/evaluation artifacts/runs
