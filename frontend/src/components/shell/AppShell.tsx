@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, MapPin } from "lucide-react";
+import { AlertTriangle, MapPin, UserRound } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { useAlerts, useForecast, useHealth, useLiveUpdates, useSite } from "@/hooks/api";
 import { getApiBaseConfigError } from "@/lib/api/client";
 import type { AlertOut } from "@/lib/api/types";
@@ -76,7 +77,24 @@ function Outline() {
   );
 }
 
-const SETTINGS_PAGES: Record<string, string> = { "/location": "location", "/settings": "plant-settings", "/setup": "plant-setup" };
+const SETTINGS_PAGES: Record<string, string> = { "/location": "location", "/settings": "plant-settings", "/setup": "plant-setup", "/login": "sign-in" };
+
+/** Account entry: "Sign in" when signed out, the user's initial when signed in (links to settings). */
+function AccountButton() {
+  const auth = useAuth();
+  if (auth.user) {
+    const initial = (auth.user.name || auth.user.email).trim().charAt(0).toUpperCase();
+    return (
+      <Link href="/settings" title={`Signed in as ${auth.user.email}`} aria-label={`Account: ${auth.user.email}`}
+        className="t-colors inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-[14px] font-semibold text-on-accent hover:opacity-90">{initial}</Link>
+    );
+  }
+  return (
+    <Link href="/login" className="t-colors inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[13px] font-medium text-ink hover:bg-sunken">
+      <UserRound className="h-4 w-4" aria-hidden /><span className="hidden sm:inline">Sign in</span>
+    </Link>
+  );
+}
 /** Pages whose figures come from the Dewas evaluation (held-out test days), not from the selected site. */
 const DEWAS_ONLY = ["/models", "/trust", "/impact", "/deviation", "/assumptions", "/whatif"];
 
@@ -102,7 +120,8 @@ function ContextBar() {
           <Pill tone="accent">Recorded replay</Pill>
         )}
         {ap.live && !busy && !ap.site.is_home && <span className="text-[12px] text-warn">Not validated at this site</span>}
-        {ap.live && !busy && ap.site.is_home && ap.customised && <span className="text-[12px] text-warn">Scaled from the plant the models were trained on</span>}
+        {ap.live && !busy && ap.site.is_home && ap.customised && <span className="text-[12px] text-warn">Your layout, transferred through the physics model</span>}
+        {ap.store.calibration && Object.keys(ap.store.calibration.factors).length > 0 && <Pill tone="accent" title="Calibrated to your measured history">Calibrated</Pill>}
         <span className="ml-auto flex items-center gap-3 text-[12px]">
           <Link href="/location" className="text-accent underline underline-offset-2">Change location</Link>
           <Link href="/settings" className="text-accent underline underline-offset-2">Plant settings</Link>
@@ -194,6 +213,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3 md:ml-4">
             <Clock />
             <ModePill />
+            <AccountButton />
             <SettingsMenu />
           </div>
         </div>

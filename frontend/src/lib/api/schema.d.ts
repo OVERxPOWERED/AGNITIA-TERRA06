@@ -15,7 +15,7 @@ export interface paths {
          * Health
          * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
          */
-        get: operations["health_health_get"];
+        get: operations["health_health_head"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,7 +24,7 @@ export interface paths {
          * Health
          * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
          */
-        head: operations["health_health_get"];
+        head: operations["health_health_head"];
         patch?: never;
         trace?: never;
     };
@@ -40,7 +40,7 @@ export interface paths {
          * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
          *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
          */
-        get: operations["health_deep_health_deep_get"];
+        get: operations["health_deep_health_deep_head"];
         put?: never;
         post?: never;
         delete?: never;
@@ -50,7 +50,7 @@ export interface paths {
          * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
          *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
          */
-        head: operations["health_deep_health_deep_get"];
+        head: operations["health_deep_health_deep_head"];
         patch?: never;
         trace?: never;
     };
@@ -412,6 +412,116 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signup */
+        post: operations["signup_auth_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_auth_me_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Me
+         * @description Delete the account, its sessions and its stored plant.
+         */
+        delete: operations["delete_me_auth_me_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/plant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Plant */
+        get: operations["get_plant_me_plant_get"];
+        /** Put Plant */
+        put: operations["put_plant_me_plant_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/calibration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calibration
+         * @description Calibrate the physics model to uploaded measured history. Signed-in users also get the result saved.
+         */
+        post: operations["calibration_calibration_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -446,6 +556,55 @@ export interface components {
              * @default false
              */
             acknowledged: boolean;
+        };
+        /** AuthIn */
+        AuthIn: {
+            /** Email */
+            email: string;
+            /** Password */
+            password: string;
+            /**
+             * Name
+             * @default
+             */
+            name: string;
+        };
+        /** AuthOut */
+        AuthOut: {
+            /** Token */
+            token: string;
+            user: components["schemas"]["UserOut"];
+        };
+        /** CalibrationIn */
+        CalibrationIn: {
+            /** Csv */
+            csv: string;
+            /**
+             * Timezone
+             * @default Asia/Kolkata
+             */
+            timezone: string;
+            /**
+             * Stamp
+             * @default start
+             * @enum {string}
+             */
+            stamp: "start" | "end";
+            /**
+             * Unit
+             * @default MW
+             * @enum {string}
+             */
+            unit: "MW" | "kW";
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /** Location Id */
+            location_id?: string | null;
         };
         /** DispatchPoint */
         DispatchPoint: {
@@ -650,7 +809,7 @@ export interface components {
              * Step
              * @enum {string}
              */
-            step: "queued" | "weather" | "models" | "plan" | "done";
+            step: "queued" | "weather" | "models" | "plan" | "second" | "done";
             /** Started At */
             started_at: string;
             /** Finished At */
@@ -696,6 +855,21 @@ export interface components {
             /** Attribution */
             attribution: string;
             plant: components["schemas"]["PlantSummary"];
+            /**
+             * Second Opinions
+             * @default []
+             */
+            second_opinions: components["schemas"]["WeatherModelSeries"][];
+            /**
+             * Export Curtailed Mw
+             * @default []
+             */
+            export_curtailed_mw: number[];
+            /**
+             * Export Curtailed Mwh
+             * @default 0
+             */
+            export_curtailed_mwh: number;
         };
         /** ModelRow */
         ModelRow: {
@@ -739,6 +913,52 @@ export interface components {
              */
             daylight_only: boolean;
         };
+        /** PlantIn */
+        PlantIn: {
+            /** Values */
+            values?: {
+                [key: string]: unknown;
+            } | null;
+            /** Site Id */
+            site_id?: string | null;
+            /** Live Home */
+            live_home?: boolean | null;
+            /** Calibration */
+            calibration?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** PlantStored */
+        PlantStored: {
+            /** Site Id */
+            site_id?: string | null;
+            /**
+             * Live Home
+             * @default false
+             */
+            live_home: boolean;
+            /**
+             * Values
+             * @default {}
+             */
+            values: {
+                [key: string]: unknown;
+            };
+            /**
+             * Calibration
+             * @default {}
+             */
+            calibration: {
+                [key: string]: unknown;
+            };
+            /**
+             * Version
+             * @default 0
+             */
+            version: number;
+            /** Updated At */
+            updated_at?: string | null;
+        };
         /** PlantSummary */
         PlantSummary: {
             /** Plant Name */
@@ -763,6 +983,27 @@ export interface components {
             entered: string[];
             /** Customised */
             customised: boolean;
+            /**
+             * Sources
+             * @default hybrid
+             */
+            sources: string;
+            /** Export Limit Mw */
+            export_limit_mw?: number | null;
+            /**
+             * Calibration
+             * @default {}
+             */
+            calibration: {
+                [key: string]: number;
+            };
+            /**
+             * Derate Now
+             * @default {}
+             */
+            derate_now: {
+                [key: string]: number;
+            };
         };
         /** ProfileBody */
         ProfileBody: {
@@ -771,14 +1012,28 @@ export interface components {
              * @default {}
              */
             values: {
-                [key: string]: string | number | null;
+                [key: string]: unknown;
+            };
+            /**
+             * Calibration
+             * @default {}
+             */
+            calibration: {
+                [key: string]: number;
+            };
+            /**
+             * Keys
+             * @default {}
+             */
+            keys: {
+                [key: string]: string;
             };
         };
         /** ProfileCheck */
         ProfileCheck: {
             /** Clean */
             clean: {
-                [key: string]: string | number;
+                [key: string]: unknown;
             };
             /** Errors */
             errors: {
@@ -809,6 +1064,17 @@ export interface components {
             /** Plant Note */
             plant_note: string;
         };
+        /** UserOut */
+        UserOut: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
+            /** Created At */
+            created_at: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -821,6 +1087,32 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WeatherModelPoint */
+        WeatherModelPoint: {
+            /** Target Time Utc */
+            target_time_utc: string;
+            /** Solar Mw */
+            solar_mw: number | null;
+            /** Wind Mw */
+            wind_mw: number | null;
+            /** Hybrid Mw */
+            hybrid_mw: number | null;
+            /** Ghi */
+            ghi: number | null;
+            /** Ws100 */
+            ws100: number | null;
+        };
+        /** WeatherModelSeries */
+        WeatherModelSeries: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Status */
+            status: string;
+            /** Points */
+            points: components["schemas"]["WeatherModelPoint"][];
         };
         /** WhatIfRequest */
         WhatIfRequest: {
@@ -867,7 +1159,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_get: {
+    health_health_head: {
         parameters: {
             query?: never;
             header?: never;
@@ -887,7 +1179,7 @@ export interface operations {
             };
         };
     };
-    health_health_get: {
+    health_health_head: {
         parameters: {
             query?: never;
             header?: never;
@@ -907,7 +1199,7 @@ export interface operations {
             };
         };
     };
-    health_deep_health_deep_get: {
+    health_deep_health_deep_head: {
         parameters: {
             query?: never;
             header?: never;
@@ -929,7 +1221,7 @@ export interface operations {
             };
         };
     };
-    health_deep_health_deep_get: {
+    health_deep_health_deep_head: {
         parameters: {
             query?: never;
             header?: never;
@@ -1496,6 +1788,272 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileCheck"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    signup_auth_signup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    me_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_me_auth_me_delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plant_me_plant_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantStored"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_plant_me_plant_put: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlantIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlantStored"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calibration_calibration_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalibrationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

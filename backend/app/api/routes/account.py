@@ -15,7 +15,6 @@ from app.services import locations as loc_svc
 
 router = APIRouter(tags=["account"])
 CurrentUser = Annotated[UserRow, Depends(auth.current_user)]
-OptionalUser = Annotated[UserRow | None, Depends(auth.optional_user)]
 MAX_CSV_BYTES = 6_000_000
 
 
@@ -65,8 +64,9 @@ def put_plant(body: PlantIn, user: CurrentUser) -> dict:
 
 
 @router.post("/calibration")
-async def calibration(body: CalibrationIn, user: OptionalUser) -> dict:
-    """Calibrate the physics model to uploaded measured history. Signed-in users also get the result saved."""
+async def calibration(body: CalibrationIn) -> dict:
+    """Calibrate the physics model to uploaded measured history. Nothing is stored here: the client keeps the
+    result and, when signed in, saves the adopted calibration with its plant (PUT /me/plant)."""
     from terra.profile import apply_profile
     from terra.real.measured import UploadError, run
 
@@ -82,7 +82,4 @@ async def calibration(body: CalibrationIn, user: OptionalUser) -> dict:
     except UploadError as exc:
         raise HTTPException(422, str(exc)) from exc
     report["location_id"] = loc.id
-    if user is not None:
-        auth.save_plant(user, calibration=report)
-        report["saved_to_account"] = True
     return report

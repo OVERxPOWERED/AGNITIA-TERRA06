@@ -2,6 +2,7 @@
 /** Forecast Explorer: how one source and one model did against what was actually generated, then the next 48 hours. */
 import React, { useMemo, useState } from "react";
 import ConfidenceStrip from "@/components/charts/ConfidenceStrip";
+import SecondOpinions from "@/components/charts/SecondOpinions";
 import EChart from "@/components/charts/EChart";
 import { GRID_LEFT, GRID_RIGHT, bandSeries, istMs, lineSeries, timeChart, type BandPoint } from "@/components/charts/series";
 import { PageHeader, Panel, PanelHeader, Segmented } from "@/components/ui/primitives";
@@ -76,6 +77,12 @@ export default function ForecastPage() {
             </div>
           )}
         </Panel>
+        {ap.live && ap.run.result && (
+          <Panel>
+            <PanelHeader title="Weather second opinions" note={`What ${ap.label} would make if each weather model is right. ECMWF drives the forecast; GFS and ICON${ap.store.keys.solcast || ap.store.keys.tomorrow ? " and your keyed providers" : ""} are second opinions.`} />
+            <div className="pb-3 pt-2"><SecondOpinions r={ap.run.result} /></div>
+          </Panel>
+        )}
       </div>
     </>
   );

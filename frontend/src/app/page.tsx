@@ -191,6 +191,7 @@ export default function ControlRoom() {
           <dl className="px-4 pb-4 pt-3 text-[13px] sm:px-5">
             {[
               { label: "Dispatch advisor", value: k ? `${mwh(k.backup_mwh)} backup` : "—", note: k ? `${mwh(k.curtail_mwh)} curtailed, planned cost ${inr(k.cost_inr)} (illustrative)` : "" },
+              ...(ap.run.result?.plant.export_limit_mw ? [{ label: "Export limit", value: `${ap.run.result.plant.export_limit_mw} MW`, note: `${mwh(ap.run.result.export_curtailed_mwh)} of expected output is above the limit over 48 hours` }] : []),
               { label: "Battery", value: soc.length ? `${Math.min(...soc).toFixed(0)} to ${Math.max(...soc).toFixed(0)} MWh stored` : "—", note: k ? `${k.battery_throughput_mwh.toFixed(0)} MWh moved through the battery` : "" },
               { label: "Deviation shield", value: impact.data?.impact.dsm_charges_saved_inr != null ? `${inr(Number(impact.data.impact.dsm_charges_saved_inr))} avoided` : "—", note: `${ap.live ? "Dewas figure. " : ""}Over the test period, against persistence scheduling. Illustrative rates.` },
               { label: "Solar accuracy", value: solarRow ? `${solarRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: solarRow ? `${ap.live ? "Dewas figure. " : ""}Daylight hours, test period. Skill ${Math.round(100 * (solarRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * solarRow.picp80)}%.` : "" },

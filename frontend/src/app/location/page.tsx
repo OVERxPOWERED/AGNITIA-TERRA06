@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, MapPin } from "lucide-react";
 import ConfidenceStrip from "@/components/charts/ConfidenceStrip";
+import SecondOpinions from "@/components/charts/SecondOpinions";
 import EChart from "@/components/charts/EChart";
 import { GRID_LEFT, GRID_RIGHT, bandSeries, istMs, lineSeries, timeChart, type BandPoint } from "@/components/charts/series";
 import { Button, Pill, PageHeader, Panel, PanelHeader, Skeleton, Spinner, Stat } from "@/components/ui/primitives";
@@ -155,7 +156,7 @@ export default function LocationPage() {
                 <Stat label="Expected energy" value={`${Math.round(energy).toLocaleString("en-IN")} MWh`} note="Next 48 hours, hybrid median" />
                 <Stat label="Peak output" value={`${peak.toFixed(1)} MW`} note="Highest hourly median" />
                 <Stat label="Average confidence" value={`${Math.round(trust)} / 100`} tone={trust >= 70 ? "good" : trust >= 40 ? "warn" : "bad"} note="Trust score, higher is better" />
-                <Stat label="Backup needed" value={`${Math.round(r.kpis.backup_mwh).toLocaleString("en-IN")} MWh`} note="With the battery plan" />
+                <Stat label="Backup needed" value={`${Math.round(r.kpis.backup_mwh).toLocaleString("en-IN")} MWh`} note={r.plant.export_limit_mw ? `With the battery plan. ${Math.round(r.export_curtailed_mwh)} MWh above the ${r.plant.export_limit_mw} MW export limit.` : "With the battery plan"} />
               </div>
               <div className="border-t border-line px-2 pb-3 pt-3 sm:px-3">
                 {chart && <EChart option={chart} height={360} ariaLabel={`Forecast for ${r.plant.plant_name}`} />}
@@ -164,6 +165,11 @@ export default function LocationPage() {
                 <div className="mb-2 text-[13px] font-medium" style={{ paddingLeft: GRID_LEFT }}>Forecast confidence by hour</div>
                 <ConfidenceStrip points={r.hybrid} padLeft={GRID_LEFT} padRight={GRID_RIGHT} />
               </div>
+            </Panel>
+
+            <Panel>
+              <PanelHeader title="Weather second opinions" note="The plant's physics output under each weather model, against the served forecast." />
+              <div className="pb-3 pt-2"><SecondOpinions r={r} /></div>
             </Panel>
 
             <Panel>

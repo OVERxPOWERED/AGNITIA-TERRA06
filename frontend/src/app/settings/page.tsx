@@ -3,14 +3,18 @@
 import Link from "next/link";
 import React, { useRef, useState } from "react";
 import { Check } from "lucide-react";
-import { StepFields, clientError, setValue } from "@/components/plant/PlantFields";
+import HistoryUpload from "@/components/plant/HistoryUpload";
+import { StepFields, clientError, setValue, visibleFields } from "@/components/plant/PlantFields";
 import { Button, PageHeader, Panel, PanelHeader, Spinner } from "@/components/ui/primitives";
 import { QueryState } from "@/components/ui/states";
 import { checkProfile } from "@/lib/profile-api";
-import { isEntered, useActivePlant, type Values } from "@/lib/plant";
+import { useAuth } from "@/lib/auth";
+import { isEntered, useActivePlant, type Value, type Values } from "@/lib/plant";
 
 export default function PlantSettings() {
   const ap = useActivePlant();
+  const auth = useAuth();
+  const [keys, setKeys] = useState(ap.store.keys);
   const [draft, setDraft] = useState<Values | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -20,12 +24,12 @@ export default function PlantSettings() {
   const values = draft ?? ap.store.values;
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(ap.store.values);
 
-  const change = (k: string, v: string | undefined) => { setDraft(setValue(values, k, v)); setNote(null); setErrors((e) => { const n = { ...e }; delete n[k]; return n; }); };
+  const change = (k: string, v: Value | undefined) => { setDraft(setValue(values, k, v)); setNote(null); setErrors((e) => { const n = { ...e }; delete n[k]; return n; }); };
 
   const save = async () => {
     if (!schema) return;
     const local: Record<string, string> = {};
-    for (const f of schema.fields) { const e = clientError(f, values[f.key]); if (e) local[f.key] = e; }
+    for (const f of visibleFields(schema, values)) { const e = clientError(f, values[f.key]); if (e) local[f.key] = e; }
     if (Object.keys(local).length) { setErrors(local); return; }
     setBusy(true); setNote(null);
     try {
@@ -53,7 +57,7 @@ export default function PlantSettings() {
       const raw = JSON.parse(await f.text()) as { values?: Record<string, unknown> };
       const known = new Set(schema.fields.map((x) => x.key));
       const next: Values = {};
-      for (const [k, v] of Object.entries(raw.values ?? {})) if (known.has(k) && (typeof v === "string" || typeof v === "number") && isEntered(v)) next[k] = v;
+      for (const [k, v] of Object.entries(raw.values ?? {})) if (known.has(k) && (typeof v === "string" || typeof v === "number" || Array.isArray(v)) && isEntered(v)) next[k] = v as Value;
       setDraft(next); setNote(`Loaded ${Object.keys(next).length} values. Review them, then save.`);
     } catch { setNote("That file is not a Vidyut plant profile."); }
     if (file.current) file.current.value = "";
@@ -82,7 +86,48 @@ export default function PlantSettings() {
               </Panel>
             ))}
             <Panel>
-              <PanelHeader title="Your data" note="Settings live in this browser only. Export them to keep a copy or move them to another browser." />
+              <PanelHeader title="Measured history" note="Upload what the plant actually produced. Vidyut checks the data and calibrates the forecast to your plant, but only if that lowers the error on days held back from the fit." />
+              <div className="px-4 pb-5 pt-4 sm:px-5"><HistoryUpload /></div>
+            </Panel>
+            <Panel>
+              <PanelHeader title="Weather data sources" note="Every live forecast also asks other weather models what they expect, runs each through your plant's physics model, and raises an alert when they disagree." />
+              <div className="space-y-4 px-4 pb-5 pt-4 text-[13px] sm:px-5">
+                <ul className="space-y-1.5 text-ink">
+                  <li><b className="font-medium">Open-Meteo</b>: ECMWF IFS (drives the forecast), plus NOAA GFS and DWD ICON as second opinions. Free, no key.</li>
+                  <li><b className="font-medium">NASA POWER</b>: satellite-based sunshine since 2001, used to cross-check uploaded history. Free, no key; recent months are not available yet.</li>
+                </ul>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {([["solcast", "Solcast API key", "Adds Solcast's irradiance forecast as a solar second opinion. Free hobbyist keys allow about 10 calls a day."],
+                     ["tomorrow", "Tomorrow.io API key", "Adds Tomorrow.io's wind forecast as a wind second opinion (free plan: 500 calls a day)."]] as const).map(([k, label, help]) => (
+                    <label key={k} className="block">
+                      <span className="text-[14px] font-medium text-ink">{label}</span>
+                      <input type="password" autoComplete="off" value={keys[k] ?? ""} onChange={(e) => setKeys({ ...keys, [k]: e.target.value })} placeholder="Optional"
+                        className="t-colors mt-1.5 h-10 w-full rounded-lg border border-line bg-surface px-3 text-[14px] text-ink focus-visible:outline-2 focus-visible:outline-accent" />
+                      <span className="mt-1 block text-[12px] text-muted">{help}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button onClick={() => { ap.setKeys(keys); setNote("Keys saved in this browser. They are sent with each live forecast and never stored on the server."); }}>Save keys</Button>
+                  <span className="text-[12px] text-muted">Keys stay in this browser, even when you are signed in.</span>
+                </div>
+              </div>
+            </Panel>
+            <Panel>
+              <PanelHeader title="Account" note={auth.user ? `Signed in as ${auth.user.email}. Your plant, location and calibration are saved to your account.` : "You are not signed in. Everything is kept in this browser only."} />
+              <div className="flex flex-wrap gap-2 px-4 pb-5 pt-4 sm:px-5">
+                {auth.user ? (
+                  <>
+                    <Button onClick={() => auth.signOut()}>Sign out</Button>
+                    <Button variant="ghost" onClick={async () => { if (window.confirm("Delete your account and the plant saved in it? This cannot be undone.")) { await auth.deleteAccount(); setNote("Account deleted. This browser keeps its local copy."); } }}>Delete account</Button>
+                  </>
+                ) : (
+                  <Link href="/login?next=/settings" className="t-colors inline-flex min-h-9 items-center rounded-lg bg-accent px-3 text-[13px] font-medium text-on-accent hover:opacity-90">Sign in or create an account</Link>
+                )}
+              </div>
+            </Panel>
+            <Panel>
+              <PanelHeader title="Your data" note="Export your settings to keep a copy or move them to another browser." />
               <div className="flex flex-wrap gap-2 px-4 pb-5 pt-4 sm:px-5">
                 <Button onClick={exportJson}>Export as file</Button>
                 <Button onClick={() => file.current?.click()}>Import from file</Button>

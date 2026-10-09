@@ -6,6 +6,7 @@ export const ALERT_LABEL: Record<string, string> = {
   RAMP: "Fast ramp",
   DEFICIT_VS_DEMAND: "Short of demand",
   LOW_CONFIDENCE: "Low confidence",
+  WEATHER_DISAGREEMENT: "Weather models disagree",
 };
 
 /** For LOW_CONFIDENCE the API's magnitude_mw is an internal placeholder, not megawatts: show the trust score instead. */

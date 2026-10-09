@@ -38,10 +38,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Bearer token of the signed-in user (optional login). Kept in localStorage; see lib/auth.tsx. */
+export const TOKEN_KEY = "vidyut_token";
+export function readToken(): string | null {
+  try { return typeof window === "undefined" ? null : localStorage.getItem(TOKEN_KEY); } catch { return null; }
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = readToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(init?.headers ?? {}) },
     cache: "no-store",
   });
   if (!res.ok) {
