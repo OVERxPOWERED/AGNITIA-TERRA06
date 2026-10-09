@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -107,6 +108,10 @@ class OpenMeteoClient:
     @retry(retry=retry_if_exception(_retryable), wait=wait_exponential(multiplier=2, min=2, max=10),
            stop=stop_after_attempt(3), reraise=True)
     def _fetch_live(self, url: str, params: dict) -> dict:
+        key = os.environ.get("TERRA_OPENMETEO_API_KEY", "").strip()
+        if key:        # paid plan: dedicated host and limits instead of the shared free tier
+            url = url.replace("//api.open-meteo.com", "//customer-api.open-meteo.com")
+            params = {**params, "apikey": key}
         return self._fetch.__wrapped__(self, url, params)
 
     def get_json(self, url: str, params: dict, use_cache: bool = True) -> dict:

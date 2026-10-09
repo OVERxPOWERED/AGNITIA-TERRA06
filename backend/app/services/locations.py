@@ -139,7 +139,11 @@ def _run(job: dict) -> None:
         job.update(status="done", step="done", finished=_now(), run_dir=out)
     except Exception as exc:
         log.exception("location forecast failed for %s", loc.id)
-        job.update(status="failed", error=f"{type(exc).__name__}: {exc}", finished=_now())
+        msg = f"{type(exc).__name__}: {exc}"
+        if "429" in msg:
+            msg = ("The free weather service (Open-Meteo) is rate-limiting this server right now. "
+                   "Try again in a few minutes. " + msg[:120])
+        job.update(status="failed", error=msg, finished=_now())
 
 
 def submit(loc_id: str, values: dict | None = None, force: bool = False, calibration: dict | None = None,
