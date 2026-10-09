@@ -82,3 +82,11 @@ def test_models_compare_daylight(client):
     j_wind = r_wind.json()
     assert j_wind["daylight_only"] is False
 
+
+
+def test_schedule_csv_forces_download(client):
+    r = client.get("/dsm/schedule.csv?source=hybrid")
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/csv")
+    assert 'attachment; filename="terra_schedule_hybrid.csv"' in r.headers["content-disposition"]
+    assert len(r.text.strip().splitlines()) == 97          # header + 96 blocks

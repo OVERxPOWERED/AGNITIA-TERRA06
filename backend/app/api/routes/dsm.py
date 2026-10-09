@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Literal
 
 import pandas as pd
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, HTTPException, Response
 from terra.engines.dsm import schedule_csv
 
 from app.schemas.api import DsmRow, DsmSummary
@@ -20,10 +19,13 @@ def summary() -> DsmSummary:
                       rows=[DsmRow(**r) for r in d["table"]])
 
 
-@router.get("/dsm/schedule.csv", response_class=PlainTextResponse)
-def schedule(source: Literal["solar", "wind", "hybrid"] = "hybrid") -> str:
+@router.get("/dsm/schedule.csv", response_class=Response)
+def schedule(source: Literal["solar", "wind", "hybrid"] = "hybrid") -> Response:
     s = runs.latest()["dsm_schedule"]
     if s is None:
         raise HTTPException(404, "no day-ahead schedule in the latest run")
     series = pd.Series(s[source].to_numpy(), index=pd.DatetimeIndex(s["block_end_utc"]))
-    return schedule_csv(series)
+    # attachment + text/csv: a cross-origin <a download> is ignored by browsers, so the server must
+    # force the download, otherwise the user is navigated away from the app to a raw text page
+    return Response(schedule_csv(series), media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="terra_schedule_{source}.csv"'})

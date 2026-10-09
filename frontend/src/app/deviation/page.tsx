@@ -40,7 +40,7 @@ export default function DeviationPage() {
           <CardTitle>Next-day schedule (96 × 15-min blocks, IST)</CardTitle>
           <p className="text-sm text-muted">Generated from the latest calibrated forecast.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(["hybrid", "solar", "wind"] as const).map((s) => (
             <a key={s} className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-border/60"
               href={`${API_BASE}/dsm/schedule.csv?source=${s}`} download={`terra_schedule_${s}.csv`}>Download {s} CSV</a>
