@@ -11,8 +11,9 @@ from app.settings import get_settings
 router = APIRouter(tags=["meta"])
 
 
-@router.get("/health", response_model=Health)
+@router.api_route("/health", methods=["GET", "HEAD"], response_model=Health)
 def health() -> Health:
+    """Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD."""
     s = get_settings()
     try:
         r = runs.latest()

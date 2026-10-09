@@ -20,6 +20,10 @@ def client():
         yield c
 
 
+def test_health_accepts_head(client):
+    assert client.head("/health").status_code == 200
+
+
 def test_health(client):
     r = client.get("/health")
     assert r.status_code == 200 and r.json()["status"] in ("ok", "no_run_yet")
