@@ -121,3 +121,14 @@ All ML/energy libraries are Python; OpenAPI → TypeScript types for Next.js.
 - **Consequences**: Production serving bundle and forecast pipeline remain zero-torch and lightweight while evaluation reports and UI provide transparent, rigorous comparison against zero-shot foundation models.
 
 
+
+## ADR-017 — Active site and plant profile (location, wizard, settings) (2026-10-09)
+- **Status**: Accepted
+- **Context**: The dashboard showed one recorded Dewas replay run. We want an operator to choose a site and describe their plant, and have every tab follow it.
+- **Decision**:
+  - Allowlisted sites live in `config/locations.yaml`; the API accepts only those ids.
+  - The plant profile (`ml/terra/profile.py`, one field table drives the wizard, Settings, validation and the pipeline) and the selected site are held in the browser (`localStorage`) and sent with each live-forecast request. The server stores nothing per visitor, so one visitor cannot change another's plant.
+  - Default view stays the recorded Dewas replay. A non-home site, Dewas on live weather, or any changed profile value switches Control Room, Forecast (48 h), Alerts and Dispatch to a live run built by `POST /locations/{id}/forecast`. Accuracy, trust, impact and cost pages stay Dewas-evaluation figures and say so.
+  - Capacity changes are applied by scaling: models run for the trained plant (`model_cfg`), MW outputs, demand and alert thresholds are multiplied by the capacity ratio. This assumes the same technology mix. Fields the models were not trained for (tilt, azimuth, DC size, hub height) are recorded only and labelled so.
+  - Forecasts at non-Dewas sites or with a customised plant are labelled "not validated"; no accuracy numbers are shown for them (non-negotiable rule 3).
+- **Consequences**: A deployed single-plant product would need server-side persistence and authentication for the profile; this is the next step, not part of this change. Uploading measured plant data to calibrate the physics model (onboarding stage 6) is not built.

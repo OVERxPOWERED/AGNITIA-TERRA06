@@ -65,13 +65,19 @@ def replay_dataset(cfg: TerraConfig, at: str | None) -> tuple[pd.DataFrame, pd.T
 
 
 def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, *, runs_dir: Path | None = None,
-                 write_latest: bool = True, progress=None) -> Path:
+                 write_latest: bool = True, progress=None, model_cfg: TerraConfig | None = None) -> Path:
     """`runs_dir`/`write_latest` let the /location feature write elsewhere without touching the main LATEST run.
-    `progress(step: str)` is called as each stage starts (used by the API for the loading screen)."""
+    `progress(step: str)` is called as each stage starts (used by the API for the loading screen).
+    `model_cfg` is the plant the models were trained for. When the operator's plant (`cfg`) has other capacities,
+    models run on `model_cfg` and the MW outputs, demand and alert thresholds are scaled by the capacity ratio."""
+    mcfg = model_cfg or cfg
+    ksc = {s: cfg.capacity_mw(s) / mcfg.capacity_mw(s) for s in ("solar", "wind")}
+    ksc["hybrid"] = cfg.capacity_mw("hybrid") / mcfg.capacity_mw("hybrid")
+    kdem = cfg.demand.peak_mw / mcfg.demand.peak_mw
     step = progress or (lambda _s: None)
     runs_root = runs_dir or RUNS
     step("weather")
-    ds, t0 = live_dataset(cfg) if mode == "live" else replay_dataset(cfg, at)
+    ds, t0 = live_dataset(mcfg) if mode == "live" else replay_dataset(mcfg, at)
     step("models")
     issues = pd.DatetimeIndex([t0])
     eng = load_object("hybrid", "engines@latest")
@@ -83,7 +89,7 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
     all_alerts = []
     for s in ("solar", "wind"):
         bundle = load_object(s, "bundle@latest")
-        rows = frame_source(ds, s, cfg, issues, require_target=False)
+        rows = frame_source(ds, s, mcfg, issues, require_target=False)
         external = {}
         if any(m.startswith("chronos2") for m in bundle.ensemble.members):
             from terra.models.chronos2 import Chronos2Forecaster  # optional heavy dependency
@@ -92,9 +98,13 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
             external = {m: Chronos2Forecaster(model_id=ckpt[m]).predict_issues(ds, s, issues, bundle.capacity_mw)
                         for m in bundle.ensemble.members if m.startswith("chronos2")}
         q, members, spread = bundle.predict(rows, external)
-        cap = bundle.capacity_mw
         absres = (ds[f"{s}_mw"] - ds[f"phys0_{s}_mw"]).abs().rolling(168, min_periods=1).mean()
-        recent = float(absres.loc[:t0].iloc[-1]) / cap
+        recent = float(absres.loc[:t0].iloc[-1]) / bundle.capacity_mw
+        k = ksc[s]
+        if k != 1.0:
+            q, spread = q * k, spread * k
+            members = {m: mq * k for m, mq in members.items()}
+        cap = cfg.capacity_mw(s)
         feats = trust_features(q, spread, rows["lead_h"].to_numpy(), np.full(len(q), recent), cap)
         tm = eng["trust"][s]
         df = pd.DataFrame({"target_time_utc": rows["target_time_utc"], "lead_h": rows["lead_h"],
@@ -110,6 +120,8 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
         rows.to_parquet(out / f"rows_{s}.parquet")
         fc = df.set_index("target_time_utc")
         th_s = alert_thrs.get(s) if alert_thrs else None
+        if th_s and k != 1.0:
+            th_s = {n: (x * k if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_s.items()}
         all_alerts += generate_alerts(fc, s, cap, cfg.alerts, t0, trust=fc["trust_score"], thresholds=th_s)
 
     step("plan")
@@ -127,9 +139,11 @@ def run_forecast(cfg: TerraConfig, mode: str = "replay", at: str | None = None, 
     hyb["trust_level"] = [level(x) for x in hyb["trust_score"]]
     hyb["trust_reason"] = np.where(sol["trust_score"] <= win["trust_score"], sol["trust_reason"], win["trust_reason"])
     hyb["source"] = "hybrid"
-    demand = ds["demand_mw"].reindex(hyb["target_time_utc"])
+    demand = ds["demand_mw"].reindex(hyb["target_time_utc"]) * kdem
     fc = hyb.set_index("target_time_utc")
     th_hyb = alert_thrs.get("hybrid") if alert_thrs else None
+    if th_hyb and ksc["hybrid"] != 1.0:
+        th_hyb = {n: (x * ksc["hybrid"] if n.endswith("_mw") or n.endswith("_mw_per_h") else x) for n, x in th_hyb.items()}
     all_alerts += generate_alerts(fc, "hybrid", cfg.capacity_mw("hybrid"), cfg.alerts, t0,
                                   demand=pd.Series(demand.to_numpy(), index=fc.index), thresholds=th_hyb)
     forecast = pd.concat([sol, win, hyb], ignore_index=True)
