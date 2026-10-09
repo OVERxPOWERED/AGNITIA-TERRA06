@@ -9,7 +9,7 @@ import type {
 } from "@/lib/api/types";
 
 import { RETRY_CONFIG, retryDelay, shouldRetry } from "@/lib/api/retry";
-import { liveQuery, useActivePlant } from "@/lib/plant";
+import { liveQuery, useActivePlant, type PlantEvaluation } from "@/lib/plant";
 
 export { RETRY_CONFIG, retryDelay, shouldRetry };
 
@@ -37,14 +37,34 @@ export function useForecast(source: Source, horizon = 48) {
     return { source, issue_time_utc: r.issue_time_utc, mode: "live", capacity_mw: cap, points: r[source].filter((p) => p.lead_h <= horizon) };
   }) as unknown as typeof q;
 }
-export const useHistory = (source: "solar" | "wind", model = "ensemble") =>
-  useQuery({ queryKey: ["history", source, model], queryFn: () => api<HistoryResponse>(`/forecast/history?source=${source}&model=${model}`), ...RETRY_CONFIG });
-export const useModels = (source: "solar" | "wind", by?: "lead_bucket", daylight = false) =>
-  useQuery({
+/* Evaluation-backed hooks: when the operator has uploaded measured history for this site, they return that plant's
+ * figures (the same harness, run on their data); otherwise the Dewas evaluation. `usePlantFigures()` says which. */
+function fromEval<Q, T>(ap: ReturnType<typeof useActivePlant>, q: Q, pick: (e: PlantEvaluation) => T | undefined): Q {
+  if (!ap.evaluation) return q;
+  return { data: pick(ap.evaluation), isLoading: false, isError: false, isFetching: false, error: null, refetch: () => {} } as unknown as Q;
+}
+export const usePlantFigures = () => !!useActivePlant().evaluation;
+
+export function useHistory(source: "solar" | "wind", model = "ensemble") {
+  const ap = useActivePlant();
+  const q = useQuery({ queryKey: ["history", source, model], queryFn: () => api<HistoryResponse>(`/forecast/history?source=${source}&model=${model}`), ...RETRY_CONFIG });
+  return fromEval(ap, q, (e): HistoryResponse => ({ source, model, lead_h_max: 24, points: model === "ensemble" ? e.history[source] ?? [] : [] }));
+}
+export function useModels(source: "solar" | "wind", by?: "lead_bucket", daylight = false) {
+  const ap = useActivePlant();
+  const q = useQuery({
     queryKey: ["models", source, by, daylight],
     queryFn: () => api<ModelsResponse>(`/models/compare?source=${source}${by ? `&by=${by}` : ""}${daylight ? "&daylight=true" : ""}`),
     ...RETRY_CONFIG,
   });
+  return fromEval(ap, q, (e): ModelsResponse | undefined => {
+    const a = e.accuracy[source];
+    if (!a) return { source, split: "test", rows: [], daylight_only: daylight };
+    // solar daylight rows are the default view; all-hours rows for "All hours"
+    const rows = (by ? a.by_lead : source === "solar" && !daylight ? a.all_hours_rows : a.rows) as unknown as ModelsResponse["rows"];
+    return { source, split: "test", rows, daylight_only: daylight && source === "solar" };
+  });
+}
 export function useAlerts() {
   const ap = useActivePlant();
   const q = useQuery({ queryKey: ["alerts"], queryFn: () => api<AlertOut[]>("/alerts"), enabled: !ap.live, ...LIVE });
@@ -57,14 +77,37 @@ export function useDispatch(strategy: "advisor" | "rule" | "none" = "advisor") {
   if (!ap.live) return q;
   return liveQuery(ap, (r): DispatchResponse => ({ strategy, points: r.dispatch_by_strategy[strategy] ?? [], kpis: r.kpis_by_strategy })) as unknown as typeof q;
 }
-export const useDsm = () => useQuery({ queryKey: ["dsm"], queryFn: () => api<DsmSummary>("/dsm/summary"), ...RETRY_CONFIG });
-export const useImpact = () => useQuery({ queryKey: ["impact"], queryFn: () => api<ImpactResponse>("/impact"), ...RETRY_CONFIG });
+export function useDsm() {
+  const ap = useActivePlant();
+  const q = useQuery({ queryKey: ["dsm"], queryFn: () => api<DsmSummary>("/dsm/summary"), ...RETRY_CONFIG });
+  return fromEval(ap, q, (e): DsmSummary => ({ illustrative_rates: e.dsm.illustrative_rates, chosen_level: e.dsm.chosen_level, rows: e.dsm.table }));
+}
+export function useImpact() {
+  const ap = useActivePlant();
+  const q = useQuery({ queryKey: ["impact"], queryFn: () => api<ImpactResponse>("/impact"), ...RETRY_CONFIG });
+  return fromEval(ap, q, (e): ImpactResponse | undefined => e.impact ? {
+    impact: e.impact, value_of_forecast: e.value_of_forecast ?? [], hybrid: {},
+    sources: [
+      "Your plant's measured history, the last 20% of the uploaded period (days the calibration never saw).",
+      "Each day the forecast was re-issued at 05:30 IST from archived weather forecasts, as the live system would have.",
+      "The battery was planned with each forecast and settled against what your plant actually produced.",
+      "Deviation charges use the configured tolerance bands with illustrative rates.",
+    ],
+  } : undefined);
+}
 export const useAssumptions = () =>
   useQuery({ queryKey: ["assumptions"], queryFn: () => api<Record<string, string>>("/assumptions"), ...RETRY_CONFIG });
-export const useTrustSummary = () =>
-  useQuery({ queryKey: ["trust-summary"], queryFn: () => api<Record<string, { spearman_score_vs_abs_error: number; mae_by_level: Record<string, number> } | null>>("/trust"), ...RETRY_CONFIG });
-export const useWhatIf = () =>
-  useMutation({ mutationFn: (body: WhatIfRequest) => api<WhatIfResponse>("/whatif", { method: "POST", body: JSON.stringify(body) }) });
+type TrustSummary = Record<string, { spearman_score_vs_abs_error: number; mae_by_level: Record<string, number> } | null>;
+export function useTrustSummary() {
+  const ap = useActivePlant();
+  const q = useQuery({ queryKey: ["trust-summary"], queryFn: () => api<TrustSummary>("/trust"), ...RETRY_CONFIG });
+  return fromEval(ap, q, (e) => e.trust as unknown as TrustSummary);
+}
+export function useWhatIf() {
+  const ap = useActivePlant();
+  const job = ap.live ? ap.jobId : null;
+  return useMutation({ mutationFn: (body: WhatIfRequest) => api<WhatIfResponse>(`/whatif${job ? `?job_id=${job}` : ""}`, { method: "POST", body: JSON.stringify(body) }) });
+}
 export const ackAlert = (id: string) => api<{ ok: boolean }>(`/alerts/${encodeURIComponent(id)}/ack`, { method: "POST" });
 
 /** Subscribe to Server-Sent Events; refresh cached data when a new run completes. */

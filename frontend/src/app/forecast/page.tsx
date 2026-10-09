@@ -56,7 +56,7 @@ export default function ForecastPage() {
       />
       <div className="space-y-6">
         <Panel>
-          <PanelHeader title="Forecast against actual generation" note={`${ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}Held-out test days, forecast issued the morning before (05:30 IST). Drag the bar below the chart to zoom.`} />
+          <PanelHeader title="Forecast against actual generation" note={`${ap.evaluation ? "Your plant, from your measured history (day-ahead). " : ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}Held-out test days, forecast issued the morning before (05:30 IST). Drag the bar below the chart to zoom.`} />
           <div className="px-2 pb-3 pt-2 sm:px-3">
             <QueryState isLoading={hist.isLoading} error={hist.error} refetch={hist.refetch} empty={!hist.data?.points.length} height="h-[380px]">
               {histOption && <EChart option={histOption} height={380} ariaLabel={`${MODEL_LABELS[model]} forecast against actual ${source} generation`} />}

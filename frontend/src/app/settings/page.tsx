@@ -85,7 +85,7 @@ export default function PlantSettings() {
                 </div>
               </Panel>
             ))}
-            <Panel>
+            <Panel id="history">
               <PanelHeader title="Measured history" note="Upload what the plant actually produced. Vidyut checks the data and calibrates the forecast to your plant, but only if that lowers the error on days held back from the fit." />
               <div className="px-4 pb-5 pt-4 sm:px-5"><HistoryUpload /></div>
             </Panel>

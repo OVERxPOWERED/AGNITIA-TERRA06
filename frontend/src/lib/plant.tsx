@@ -18,16 +18,30 @@ export interface MaintenanceWindow { source: "solar" | "wind"; start: string; en
 export type Value = string | number | MaintenanceWindow[];
 export type Values = Record<string, Value>;
 export interface CalibrationState {
+  /** factors applied to every live forecast (empty until the user applies the adopted ones) */
   factors: { solar?: number; wind?: number };
   report: CalibrationReport;
   at: string;
+  /** the plant profile the upload was evaluated with; a later edit makes the evaluation stale */
+  profileKey?: string;
+}
+type Row = Record<string, number | string | null>;
+export interface PlantEvaluation {
+  period: [string, string]; test_from: string; issues: number; test_issues: number; sources: string[];
+  models: Record<string, string>;
+  accuracy: Record<string, { rows: Row[]; by_lead: Row[]; all_hours_rows: Row[] }>;
+  trust: Record<string, { spearman_score_vs_abs_error: number; mae_by_level: Record<string, number | null> }>;
+  history: Record<string, { target_time_utc: string; actual_mw: number; q10: number; q50: number; q90: number }[]>;
+  dsm: { illustrative_rates: boolean; chosen_level: Record<string, number>; table: { source: string; strategy: string; charge_inr: number; blocks_outside_tolerance_pct: number }[]; note: string };
+  value_of_forecast?: Row[];
+  impact: Record<string, number | string | null> | null;
 }
 export interface MetricBlock { mae_mw: number | null; nmae_pct: number | null; bias_pct: number | null; hours: number }
 export interface SourceFit {
   factor?: number; trial_factor?: number; adopted?: boolean; error?: string; fit_hours?: number; test_hours?: number;
   excluded_outage_hours?: number; test_period?: [string, string]; before?: MetricBlock; after?: MetricBlock;
   corr_openmeteo_ghi?: number; corr_nasa_ghi?: number | null; nasa_hours?: number;
-  daily_mwh?: { date: string; measured: number; physics: number; calibrated: number }[];
+  daily_mwh?: { date: string; measured: number; forecast: number; calibrated: number }[];
 }
 export interface CalibrationReport {
   notes: Record<string, unknown>;
@@ -38,15 +52,15 @@ export interface CalibrationReport {
   factors: { solar?: number; wind?: number };
   weather: Record<string, string>;
   location_id?: string;
-  saved_to_account?: boolean;
+  evaluation?: PlantEvaluation;
 }
 export interface PlantStore {
   siteId: string | null; liveHome: boolean; values: Values; onboarded: boolean; dismissed: boolean;
   calibration: CalibrationState | null; keys: { solcast?: string; tomorrow?: string };
 }
 export interface FieldDef {
-  key: string; step: string; label: string; kind: "text" | "number" | "select" | "site" | "windows";
-  effect: "forecast" | "plan" | "recorded" | "display"; help: string; unit: string; min: number | null; max: number | null;
+  key: string; step: string; label: string; kind: "text" | "number" | "select" | "site" | "windows" | "phone";
+  effect: "forecast" | "plan" | "recorded" | "display" | "notify"; help: string; unit: string; min: number | null; max: number | null;
   step_size: number | null; verify: boolean; options: { value: string; label: string }[]; applies: "" | "solar" | "wind";
 }
 export interface ProfileSchema { steps: { id: string; title: string; blurb: string }[]; fields: FieldDef[]; defaults: Values }
@@ -73,7 +87,10 @@ function write(next: PlantStore) {
 }
 const subscribe = (cb: () => void) => { listeners.add(cb); return () => { listeners.delete(cb); }; };
 
-const NAME_ONLY = new Set(["plant_name", "operator", "location_id"]);
+const NAME_ONLY = new Set(["plant_name", "operator", "location_id", "whatsapp_alerts", "whatsapp_number"]);
+/** Key of the settings that change the forecast; used to tell whether an uploaded evaluation is still current. */
+export const profileKey = (values: Values, siteId: string | null) =>
+  JSON.stringify([siteId, Object.entries(values).filter(([k, v]) => !NAME_ONLY.has(k) && isEntered(v)).sort(([a], [b]) => a.localeCompare(b))]);
 export const isEntered = (v: unknown) => v !== undefined && v !== null && v !== "" && !(Array.isArray(v) && v.length === 0);
 const same = (a: unknown, b: unknown) => String(a) === String(b) || (a !== "" && b !== "" && Number(a) === Number(b));
 
@@ -103,6 +120,11 @@ export interface ActivePlant {
   /** Plain name for the top bar and page notes, e.g. "Pavagada, Karnataka" or the plant's own name. */
   label: string;
   run: RunState;
+  /** Backtest of the served forecast on the operator's uploaded history, when there is one for this site. */
+  evaluation: PlantEvaluation | null;
+  /** The plant settings changed after that upload; its numbers describe the earlier settings. */
+  evalStale: boolean;
+  jobId: string | null;
   /** "local" when signed out; otherwise the state of the last save to the account. */
   sync: "local" | "saving" | "saved" | "error";
   setSite: (id: string) => void;
@@ -170,8 +192,8 @@ export function ActivePlantProvider({ children }: { children: React.ReactNode })
   const calFactors = useMemo(() => store.calibration?.factors ?? {}, [store.calibration]);
   const customised = useMemo(
     () => Object.entries(sendValues).some(([k, v]) => !NAME_ONLY.has(k) && (Array.isArray(v) ? v.length > 0 : !schema || !same(v, schema.defaults[k])))
-      || Object.values(calFactors).some((f) => f !== undefined && f !== 1),
-    [sendValues, schema, calFactors],
+      || Object.values(calFactors).some((f) => f !== undefined && f !== 1) || !!store.calibration?.report?.evaluation,
+    [sendValues, schema, calFactors, store.calibration],
   );
   const live = !!home && !!site && (siteId !== home || store.liveHome || customised);
   const keyNames = Object.entries(store.keys).filter(([, v]) => !!v).map(([k]) => k).sort().join(",");
@@ -223,10 +245,13 @@ export function ActivePlantProvider({ children }: { children: React.ReactNode })
   }, [live, start.isError, start.error, start.submittedAt, jobQ.data, resultQ.data]);
 
   const label = store.values.plant_name ? String(store.values.plant_name) : site ? `${site.name}, ${site.region}` : "Dewas, Madhya Pradesh";
+  const evalRaw = store.calibration?.report?.evaluation ?? null;
+  const evaluation = live && evalRaw && store.calibration?.report.location_id === siteId ? evalRaw : null;
+  const evalStale = !!evaluation && !!store.calibration?.profileKey && store.calibration.profileKey !== profileKey(store.values, siteId);
   const sync: ActivePlant["sync"] = !userId ? "local" : save.isPending ? "saving" : save.isError ? "error" : "saved";
 
   const value: ActivePlant = {
-    ready: !!home, sites, home, site, store, schema, customised, live, label, run, sync,
+    ready: !!home, sites, home, site, store, schema, customised, live, label, run, sync, evaluation, evalStale, jobId,
     setSite: (id) => persist({ ...read(), siteId: id, liveHome: false }),
     setLiveHome: (v) => persist({ ...read(), liveHome: v }),
     saveProfile: (values, onboarded = true) => persist({ ...read(), values, onboarded, dismissed: true }),

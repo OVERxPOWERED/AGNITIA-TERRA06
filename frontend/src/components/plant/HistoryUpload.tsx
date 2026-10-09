@@ -5,8 +5,7 @@ import { AlertTriangle, Check, Upload } from "lucide-react";
 import EChart from "@/components/charts/EChart";
 import { Button, Pill, Segmented, Spinner } from "@/components/ui/primitives";
 import { api } from "@/lib/api/client";
-import { cn } from "@/lib/cn";
-import { useActivePlant, type CalibrationReport, type SourceFit } from "@/lib/plant";
+import { profileKey, useActivePlant, type CalibrationReport, type SourceFit, type Values } from "@/lib/plant";
 import { useTheme } from "@/lib/theme";
 
 const SAMPLE = "/samples/vidyut-measured-history-sample.csv";
@@ -18,7 +17,7 @@ function SourceResult({ name, fit }: { name: string; fit: SourceFit }) {
     const d = fit.daily_mwh ?? [];
     if (!d.length) return null;
     const mono = { color: c.muted, fontSize: 11, fontFamily: "var(--font-geist-mono), monospace" };
-    const line = (n: string, k: "measured" | "physics" | "calibrated", col: string, dashed = false) => ({
+    const line = (n: string, k: "measured" | "forecast" | "calibrated", col: string, dashed = false) => ({
       name: n, type: "line" as const, symbol: "none", data: d.map((x) => x[k]), lineStyle: { color: col, width: k === "measured" ? 2 : 1.5, type: dashed ? "dashed" as const : "solid" as const }, itemStyle: { color: col },
     });
     return {
@@ -28,7 +27,7 @@ function SourceResult({ name, fit }: { name: string; fit: SourceFit }) {
       tooltip: { trigger: "axis" as const, backgroundColor: c.surface, borderColor: c.line, textStyle: { color: c.ink, fontSize: 12 }, valueFormatter: (v: unknown) => `${Number(v).toFixed(1)} MWh` },
       xAxis: { type: "category" as const, data: d.map((x) => x.date), axisLabel: mono, axisLine: { lineStyle: { color: c.line } } },
       yAxis: { type: "value" as const, name: "MWh/day", nameTextStyle: { ...mono, align: "right" as const }, axisLabel: mono, splitLine: { lineStyle: { color: c.line } } },
-      series: [line("Measured", "measured", c.ink), line("Physics model", "physics", c.muted, true), line("Calibrated", "calibrated", name === "solar" ? c.solar : c.wind)],
+      series: [line("Measured", "measured", c.ink), line("Forecast before calibration", "forecast", c.muted, true), line("Calibrated", "calibrated", name === "solar" ? c.solar : c.wind)],
     };
   }, [fit, c, name]);
 
@@ -49,7 +48,7 @@ function SourceResult({ name, fit }: { name: string; fit: SourceFit }) {
         {fit.corr_nasa_ghi != null && <div><dt className="text-muted">Match with NASA POWER sun</dt><dd className="num text-ink">r = {fit.corr_nasa_ghi.toFixed(2)}</dd></div>}
         {!!fit.excluded_outage_hours && <div><dt className="text-muted">Likely outage hours left out</dt><dd className="num text-ink">{fit.excluded_outage_hours}</dd></div>}
       </dl>
-      <p className="mt-2 text-[12px] text-faint">Errors are measured on the last 20% of your data, which the fit never saw. Daylight hours only for solar.</p>
+      <p className="mt-2 text-[12px] text-faint">Errors of the day-ahead forecast on the last 20% of your data, which the fit never saw. Daylight hours only for solar.</p>
       {option && <div className="mt-3"><EChart option={option} height={240} ariaLabel={`Daily ${name} energy: measured, physics and calibrated`} /></div>}
     </div>
   );
@@ -77,6 +76,10 @@ export default function HistoryUpload({ values }: { values?: Record<string, unkn
         body: JSON.stringify({ csv, timezone: tz, stamp, unit, values: values ?? ap.store.values, location_id: (values?.location_id as string | undefined) ?? ap.site?.id }),
       });
       setReport(r);
+      // keep the evaluation right away (it drives the accuracy, trust, impact and deviation pages); factors are
+      // applied to forecasts only when the user says so
+      ap.setCalibration({ factors: {}, report: r, at: new Date().toISOString(),
+                          profileKey: profileKey((values ?? ap.store.values) as Values, r.location_id ?? ap.site?.id ?? null) });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "The upload failed.");
     } finally {
@@ -85,7 +88,8 @@ export default function HistoryUpload({ values }: { values?: Record<string, unkn
     }
   };
 
-  const adopted = report ? Object.fromEntries(Object.entries(report.sources).filter(([, v]) => v.adopted).map(([k, v]) => [k, v.factor])) : {};
+  const shown = report ?? current?.report ?? null;
+  const adopted = shown ? Object.fromEntries(Object.entries(shown.sources).filter(([, v]) => v.adopted).map(([k, v]) => [k, v.factor])) : {};
 
   return (
     <div className="space-y-4">
@@ -111,39 +115,40 @@ export default function HistoryUpload({ values }: { values?: Record<string, unkn
       {busy && <p className="text-[13px] text-muted" aria-live="polite">Reading {name}, checking quality, fetching weather for the same period and fitting. This can take up to a minute for a full year.</p>}
       {err && <p role="alert" className="text-[13px] text-bad">{err}</p>}
 
-      {current && !report && (
-        <div className="rounded-lg bg-accent-soft px-4 py-3 text-[13px] text-ink">
-          Calibration in use since {new Date(current.at).toLocaleString("en-IN")}: {Object.entries(current.factors).map(([k, v]) => `${k} ×${Number(v).toFixed(3)}`).join(", ") || "no factors adopted"}.
-          <button className="ml-3 text-accent underline underline-offset-2" onClick={() => ap.setCalibration(null)}>Remove</button>
-        </div>
-      )}
-
-      {report && (
+      {shown && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
-            <span className="text-ink">{name}</span>
-            <span>{String(report.quality.span_days ?? "?")} days</span>
-            {Object.entries(report.quality).filter(([, v]) => typeof v === "object" && v).map(([k, v]) => (
+            <span className="text-ink">{report ? name : `Uploaded ${current ? new Date(current.at).toLocaleString("en-IN") : ""}`}</span>
+            <span>{String(shown.quality.span_days ?? "?")} days</span>
+            {Object.entries(shown.quality).filter(([, v]) => typeof v === "object" && v).map(([k, v]) => (
               <Pill key={k}>{k}: {(v as { coverage_pct?: number }).coverage_pct}% coverage</Pill>
             ))}
-            <Pill tone={report.weather.nasa_power === "ok" ? "good" : "neutral"}>NASA POWER: {report.weather.nasa_power}</Pill>
+            <Pill tone={shown.weather.nasa_power === "ok" ? "good" : "neutral"}>NASA POWER: {shown.weather.nasa_power}</Pill>
+            {shown.evaluation && <Pill tone="good">Forecast evaluated on {shown.evaluation.test_issues} held-out days</Pill>}
           </div>
-          {report.warnings.length > 0 && (
+          {shown.warnings.length > 0 && (
             <div className="flex items-start gap-3 rounded-lg border border-warn/40 bg-warn-soft p-3.5 text-[13px]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
-              <ul className="space-y-1 text-ink">{report.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+              <ul className="space-y-1 text-ink">{shown.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
             </div>
           )}
-          {Object.entries(report.sources).map(([k, v]) => <SourceResult key={k} name={k} fit={v} />)}
-          <div className={cn("flex flex-wrap items-center gap-3 rounded-lg border border-line p-3.5 text-[13px]")}>
-            <span className="text-ink">
-              {Object.keys(adopted).length ? `Use ${Object.entries(adopted).map(([k, v]) => `${k} ×${Number(v).toFixed(3)}`).join(" and ")} in every forecast?` : "Nothing to apply: no factor improved the held-out error, so the forecast stays as it is."}
-            </span>
-            {Object.keys(adopted).length > 0 && (
-              <Button variant="primary" onClick={() => { ap.setCalibration({ factors: adopted, report, at: new Date().toISOString() }); setReport(null); }}>Use this calibration</Button>
+          {Object.entries(shown.sources).map(([k, v]) => <SourceResult key={k} name={k} fit={v} />)}
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-3.5 text-[13px]">
+            {!Object.keys(adopted).length ? (
+              <span className="text-ink">No calibration factor lowered the held-out error, so forecasts stay as they are. The evaluation still drives the accuracy, trust, impact and deviation pages.</span>
+            ) : current && Object.keys(current.factors).length > 0 ? (
+              <>
+                <span className="text-ink">Applied to every forecast: {Object.entries(current.factors).map(([k, v]) => `${k} ×${Number(v).toFixed(3)}`).join(", ")}.</span>
+                <Button onClick={() => ap.setCalibration({ ...current, factors: {} })}>Stop applying</Button>
+              </>
+            ) : (
+              <>
+                <span className="text-ink">Apply {Object.entries(adopted).map(([k, v]) => `${k} ×${Number(v).toFixed(3)}`).join(" and ")} to every forecast?</span>
+                <Button variant="primary" onClick={() => current && ap.setCalibration({ ...current, factors: adopted })}>Apply calibration</Button>
+              </>
             )}
-            <Button variant="ghost" onClick={() => setReport(null)}>Discard</Button>
-            {ap.sync !== "local" && <span className="text-[12px] text-faint">Saved to your account when you use it.</span>}
+            <Button variant="ghost" onClick={() => { ap.setCalibration(null); setReport(null); }}>Remove this upload</Button>
+            {ap.sync !== "local" && <span className="text-[12px] text-faint">Saved to your account.</span>}
           </div>
         </div>
       )}

@@ -33,6 +33,7 @@ export default function ControlRoom() {
   const impact = useImpact();
   const health = useHealth();
   const ap = useActivePlant();
+  const figTag = ap.evaluation ? "Your plant, from measured history. " : ap.live ? "Dewas figure. " : "";
   const solarEval = useModels("solar", undefined, true);
   const windEval = useModels("wind");
   const [view, setView] = useState<View>("all");
@@ -193,9 +194,9 @@ export default function ControlRoom() {
               { label: "Dispatch advisor", value: k ? `${mwh(k.backup_mwh)} backup` : "—", note: k ? `${mwh(k.curtail_mwh)} curtailed, planned cost ${inr(k.cost_inr)} (illustrative)` : "" },
               ...(ap.run.result?.plant.export_limit_mw ? [{ label: "Export limit", value: `${ap.run.result.plant.export_limit_mw} MW`, note: `${mwh(ap.run.result.export_curtailed_mwh)} of expected output is above the limit over 48 hours` }] : []),
               { label: "Battery", value: soc.length ? `${Math.min(...soc).toFixed(0)} to ${Math.max(...soc).toFixed(0)} MWh stored` : "—", note: k ? `${k.battery_throughput_mwh.toFixed(0)} MWh moved through the battery` : "" },
-              { label: "Deviation shield", value: impact.data?.impact.dsm_charges_saved_inr != null ? `${inr(Number(impact.data.impact.dsm_charges_saved_inr))} avoided` : "—", note: `${ap.live ? "Dewas figure. " : ""}Over the test period, against persistence scheduling. Illustrative rates.` },
-              { label: "Solar accuracy", value: solarRow ? `${solarRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: solarRow ? `${ap.live ? "Dewas figure. " : ""}Daylight hours, test period. Skill ${Math.round(100 * (solarRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * solarRow.picp80)}%.` : "" },
-              { label: "Wind accuracy", value: windRow ? `${windRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: windRow ? `${ap.live ? "Dewas figure. " : ""}Test period. Skill ${Math.round(100 * (windRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * windRow.picp80)}%.` : "" },
+              { label: "Deviation shield", value: impact.data?.impact.dsm_charges_saved_inr != null ? `${inr(Number(impact.data.impact.dsm_charges_saved_inr))} avoided` : "—", note: `${figTag}Over the test period, against persistence scheduling. Illustrative rates.` },
+              { label: "Solar accuracy", value: solarRow ? `${solarRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: solarRow ? `${figTag}Daylight hours, test period. Skill ${Math.round(100 * (solarRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * solarRow.picp80)}%.` : "" },
+              { label: "Wind accuracy", value: windRow ? `${windRow.nmae_pct.toFixed(1)}% nMAE` : "—", note: windRow ? `${figTag}Test period. Skill ${Math.round(100 * (windRow.skill_vs_persistence ?? 0))}% over persistence; 80% range covers ${Math.round(100 * windRow.picp80)}%.` : "" },
             ].map((r) => (
               <div key={r.label} className="grid grid-cols-[8.5rem_minmax(0,1fr)] gap-x-3 border-b border-line py-3 last:border-0 last:pb-0 first:pt-0">
                 <dt className="text-muted">{r.label}</dt>

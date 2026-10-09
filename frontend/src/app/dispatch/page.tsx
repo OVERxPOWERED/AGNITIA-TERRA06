@@ -83,7 +83,7 @@ export default function DispatchPage() {
           </div>
         </Panel>
         <Panel>
-          <PanelHeader title="What forecast quality is worth" note={`${ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}The same plant run over the test period with different forecasts, settled against what was actually generated.`} />
+          <PanelHeader title="What forecast quality is worth" note={`${ap.evaluation ? "Your plant, from your measured history (day-ahead). " : ap.live ? "Dewas evaluation, not " + ap.label + ". " : ""}The same plant run over the test period with different forecasts, settled against what was actually generated.`} />
           <div className="px-2 pb-4 pt-3 sm:px-3">
             <QueryState isLoading={impact.isLoading} error={impact.error} refetch={impact.refetch} height="h-32">
               <div className="overflow-x-auto">

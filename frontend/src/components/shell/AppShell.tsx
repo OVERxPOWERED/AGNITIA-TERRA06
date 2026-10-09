@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, MapPin, UserRound } from "lucide-react";
+import { AlertTriangle, Check, MapPin, OctagonAlert, UserRound } from "lucide-react";
+import { isAcked, useLocalAcks } from "@/lib/acks";
+import { ALERT_LABEL, timeToStart } from "@/lib/alerts";
 import { useAuth } from "@/lib/auth";
 import { useAlerts, useForecast, useHealth, useLiveUpdates, useSite } from "@/hooks/api";
 import { getApiBaseConfigError } from "@/lib/api/client";
@@ -95,8 +97,8 @@ function AccountButton() {
     </Link>
   );
 }
-/** Pages whose figures come from the Dewas evaluation (held-out test days), not from the selected site. */
-const DEWAS_ONLY = ["/models", "/trust", "/impact", "/deviation", "/assumptions", "/whatif"];
+/** Pages whose figures come from an evaluation: the operator's measured history when uploaded, otherwise Dewas. */
+const EVAL_PAGES = ["/models", "/trust", "/impact", "/deviation"];
 
 /** Always-visible answer to "which plant am I looking at?" for every tab. */
 function ContextBar() {
@@ -134,7 +136,7 @@ function ContextBar() {
 function Notices({ path }: { path: string }) {
   const ap = useActivePlant();
   const showSetup = ap.ready && !ap.store.onboarded && !ap.store.dismissed && !path.startsWith("/setup");
-  const dewasOnly = ap.live && DEWAS_ONLY.some((p) => path.startsWith(p));
+  const evalPage = EVAL_PAGES.some((p) => path.startsWith(p));
   return (
     <>
       {showSetup && (
@@ -147,16 +149,58 @@ function Notices({ path }: { path: string }) {
           <button onClick={ap.dismissSetup} className="t-colors rounded-md px-2 py-1.5 text-[13px] text-muted hover:bg-sunken hover:text-ink">Not now</button>
         </div>
       )}
-      {dewasOnly && (
-        <div role="note" className="mb-5 flex items-start gap-3 rounded-[10px] border border-warn/40 bg-warn-soft p-4 text-[13px]">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+      {evalPage && ap.evaluation && (
+        <div role="note" className={cn("mb-5 flex items-start gap-3 rounded-[10px] border p-4 text-[13px]", ap.evalStale ? "border-warn/40 bg-warn-soft" : "border-good/30 bg-good-soft")}>
+          <Check className={cn("mt-0.5 h-4 w-4 shrink-0", ap.evalStale ? "text-warn" : "text-good")} aria-hidden />
           <div>
-            <div className="font-medium text-ink">These figures are from the Dewas evaluation, not {ap.label}</div>
-            <div className="mt-0.5 text-muted">Accuracy, trust, impact and cost figures were measured on held-out test days at the Dewas plant. The control room, forecast, alerts and dispatch tabs follow your selected location.</div>
+            <div className="font-medium text-ink">Figures for {ap.label}, from your measured history</div>
+            <div className="mt-0.5 text-muted">
+              {ap.evaluation.test_issues} held-out days ({toIST(ap.evaluation.test_from).split(",")[0]} onwards) out of {ap.evaluation.issues} evaluated, forecasts re-issued each morning from archived weather forecasts exactly as the live system would.
+              {ap.evalStale && " Your plant settings changed after this upload, so these numbers describe the earlier settings. Upload the history again to refresh them."}
+            </div>
           </div>
         </div>
       )}
+      {evalPage && ap.live && !ap.evaluation && (
+        <div role="note" className="mb-5 flex flex-wrap items-start gap-3 rounded-[10px] border border-warn/40 bg-warn-soft p-4 text-[13px]">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <div className="font-medium text-ink">These are reference figures from the Dewas plant, not {ap.label}</div>
+            <div className="mt-0.5 text-muted">Upload your plant&apos;s measured history and this page shows your own accuracy, trust check, savings and deviation charges, measured on your data.</div>
+          </div>
+          <Link href="/settings#history" className="t-colors inline-flex min-h-9 items-center rounded-lg bg-accent px-3 text-[13px] font-medium text-on-accent hover:opacity-90">Upload measured history</Link>
+        </div>
+      )}
     </>
+  );
+}
+
+/** Red bar on every page while an unacknowledged critical alert is open. */
+function CriticalBar({ path }: { path: string }) {
+  const alerts = useAlerts();
+  const local = useLocalAcks();
+  const [now, setNow] = useState(0);
+  useEffect(() => { const t = () => setNow(Date.now()); t(); const id = setInterval(t, 30_000); return () => clearInterval(id); }, []);
+  const open = (alerts.data ?? []).filter((a) => a.severity === "critical" && !isAcked(a, local) && (!now || Date.parse(a.end_utc) > now))
+    .sort((x, y) => x.start_utc.localeCompare(y.start_utc));
+  useEffect(() => {
+    const base = document.title.replace(/^\(\d+\) ⚠ /, "");
+    document.title = open.length ? `(${open.length}) ⚠ ${base}` : base;
+  }, [open.length]);
+  if (!open.length || path.startsWith("/alerts")) return null;
+  const first = open[0];
+  return (
+    <div role="alert" className="border-b-2 border-bad bg-bad text-white">
+      <div className="mx-auto flex max-w-[1360px] flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-[14px] sm:px-6">
+        <span className="relative flex h-6 w-6 items-center justify-center">
+          <span aria-hidden className="absolute inset-0 rounded-full bg-white/40 motion-safe:animate-ping" />
+          <OctagonAlert className="relative h-5 w-5" aria-hidden />
+        </span>
+        <span className="font-semibold">{open.length} critical alert{open.length === 1 ? "" : "s"}:</span>
+        <span className="min-w-0 flex-1 truncate">{ALERT_LABEL[first.type] ?? first.type}, {now ? timeToStart(first, now).toLowerCase() : "open"}. {first.message}</span>
+        <Link href="/alerts" className="rounded-md bg-white px-3 py-1 text-[13px] font-semibold text-bad hover:opacity-90">Act now</Link>
+      </div>
+    </div>
   );
 }
 
@@ -187,7 +231,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const onAlert = useCallback((a: AlertOut) => setToast(a), []);
   useLiveUpdates(onAlert);
 
-  const unacked = useMemo(() => (alerts.data ?? []).filter((a) => !a.acknowledged).length, [alerts.data]);
+  const local = useLocalAcks();
+  const unacked = useMemo(() => (alerts.data ?? []).filter((a) => !isAcked(a, local)).length, [alerts.data, local]);
   const extra = Object.keys(SETTINGS_PAGES).find((p) => path.startsWith(p));
   const current = extra ? { href: extra, label: SETTINGS_PAGES[extra], slug: SETTINGS_PAGES[extra] } : (NAV.find((n) => (n.href === "/" ? path === "/" : path.startsWith(n.href))) ?? NAV[0]);
   const configError = getApiBaseConfigError();
@@ -240,6 +285,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <ContextBar />
       </header>
+      <CriticalBar path={path} />
 
       <main id="main" className="mx-auto w-full max-w-[1360px] flex-1 px-4 py-6 sm:px-6">
         {configError && (

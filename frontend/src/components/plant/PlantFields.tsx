@@ -11,6 +11,7 @@ export const EFFECT: Record<FieldDef["effect"], { label: string; tip: string; to
   forecast: { label: "Changes the forecast", tip: "Applied through the physics model, equipment availability, panel condition or the export limit.", tone: "accent" },
   plan: { label: "Changes planning", tip: "Used by the battery, backup, demand and alert planning.", tone: "accent" },
   display: { label: "Shown on every page", tip: "Used as the plant name across the dashboard.", tone: "accent" },
+  notify: { label: "Alert delivery", tip: "Decides who is told about critical alerts, and how.", tone: "accent" },
   recorded: { label: "Recorded only", tip: "Saved and shown in reports. Nothing in the physics depends on it.", tone: "neutral" },
 };
 
@@ -88,7 +89,7 @@ export function FieldRow({ f, value, defaults, sites, error, onChange }: {
         ) : (
           <div className="relative w-full">
             <input
-              id={id} type={f.kind === "number" ? "number" : "text"} inputMode={f.kind === "number" ? "decimal" : undefined}
+              id={id} type={f.kind === "number" ? "number" : f.kind === "phone" ? "tel" : "text"} inputMode={f.kind === "number" ? "decimal" : undefined}
               min={f.min ?? undefined} max={f.max ?? undefined} step={f.step_size ?? undefined}
               value={entered ? String(value) : ""} placeholder={def !== undefined && def !== "" ? String(def) : "Optional"}
               onChange={(ev) => onChange(f.key, ev.target.value === "" ? undefined : ev.target.value)}

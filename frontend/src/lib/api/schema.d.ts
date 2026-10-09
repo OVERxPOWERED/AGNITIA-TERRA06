@@ -15,7 +15,7 @@ export interface paths {
          * Health
          * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
          */
-        get: operations["health_health_head"];
+        get: operations["health_health_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -24,7 +24,7 @@ export interface paths {
          * Health
          * @description Liveness/readiness probe. Accepts HEAD too: uptime pingers (UptimeRobot) often probe with HEAD.
          */
-        head: operations["health_health_head"];
+        head: operations["health_health_get"];
         patch?: never;
         trace?: never;
     };
@@ -40,7 +40,7 @@ export interface paths {
          * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
          *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
          */
-        get: operations["health_deep_health_deep_head"];
+        get: operations["health_deep_health_deep_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -50,7 +50,7 @@ export interface paths {
          * @description Keep-warm probe: like /health but also makes one tiny query against the database (wakes a suspended
          *     Neon compute). Always HTTP 200 so a pinger does not page on a slow wake-up; read the `db` field.
          */
-        head: operations["health_deep_health_deep_head"];
+        head: operations["health_deep_health_deep_get"];
         patch?: never;
         trace?: never;
     };
@@ -205,7 +205,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Whatif */
+        /**
+         * Whatif
+         * @description `job_id`: run the scenario on that live forecast for the operator's plant instead of the Dewas replay.
+         */
         post: operations["whatif_whatif_post"];
         delete?: never;
         options?: never;
@@ -513,9 +516,105 @@ export interface paths {
         put?: never;
         /**
          * Calibration
-         * @description Calibrate the physics model to uploaded measured history. Signed-in users also get the result saved.
+         * @description Calibrate the physics model to uploaded measured history. Nothing is stored here: the client keeps the
+         *     result and, when signed in, saves the adopted calibration with its plant (PUT /me/plant).
          */
         post: operations["calibration_calibration_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notify/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notify Status
+         * @description Which WhatsApp provider the server is configured with (no secrets).
+         */
+        get: operations["notify_status_notify_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notify/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Notify Test */
+        post: operations["notify_test_me_notify_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notify/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Notify Check
+         * @description Run the plant monitor now for this user (the server also runs it on a schedule).
+         */
+        post: operations["notify_check_me_notify_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Notifications */
+        get: operations["notifications_me_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Schedule */
+        get: operations["get_schedule_me_schedule_get"];
+        /**
+         * Put Schedule
+         * @description Record the schedule submitted to the load despatch centre (a re-submit counts as a revision).
+         */
+        put: operations["put_schedule_me_schedule_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +673,17 @@ export interface components {
             /** Token */
             token: string;
             user: components["schemas"]["UserOut"];
+        };
+        /** BlockPoint */
+        BlockPoint: {
+            /** Block End Utc */
+            block_end_utc: string;
+            /** Solar */
+            solar: number;
+            /** Wind */
+            wind: number;
+            /** Hybrid */
+            hybrid: number;
         };
         /** CalibrationIn */
         CalibrationIn: {
@@ -870,6 +980,16 @@ export interface components {
              * @default 0
              */
             export_curtailed_mwh: number;
+            /**
+             * Dsm Schedule
+             * @default []
+             */
+            dsm_schedule: components["schemas"]["BlockPoint"][];
+            /**
+             * Expected Blocks
+             * @default []
+             */
+            expected_blocks: components["schemas"]["BlockPoint"][];
         };
         /** ModelRow */
         ModelRow: {
@@ -1041,6 +1161,19 @@ export interface components {
             };
             summary?: components["schemas"]["PlantSummary"] | null;
         };
+        /** SchedulePut */
+        SchedulePut: {
+            /** Date */
+            date: string;
+            /** Blocks */
+            blocks: unknown[][];
+            /**
+             * Source
+             * @default hybrid
+             * @constant
+             */
+            source: "hybrid";
+        };
         /** SiteInfo */
         SiteInfo: {
             /** Name */
@@ -1159,7 +1292,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_health_head: {
+    health_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1179,7 +1312,7 @@ export interface operations {
             };
         };
     };
-    health_health_head: {
+    health_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1199,7 +1332,7 @@ export interface operations {
             };
         };
     };
-    health_deep_health_deep_head: {
+    health_deep_health_deep_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1221,7 +1354,7 @@ export interface operations {
             };
         };
     };
-    health_deep_health_deep_head: {
+    health_deep_health_deep_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -1481,7 +1614,9 @@ export interface operations {
     };
     whatif_whatif_post: {
         parameters: {
-            query?: never;
+            query?: {
+                job_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1650,7 +1785,9 @@ export interface operations {
             query?: {
                 force?: boolean;
             };
-            header?: never;
+            header?: {
+                authorization?: string | null;
+            };
             path: {
                 location_id: string;
             };
@@ -2033,6 +2170,197 @@ export interface operations {
     calibration_calibration_post: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalibrationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notify_status_notify_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    notify_test_me_notify_test_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notify_check_me_notify_check_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    notifications_me_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_schedule_me_schedule_get: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: {
+                authorization?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_schedule_me_schedule_put: {
+        parameters: {
+            query?: never;
             header?: {
                 authorization?: string | null;
             };
@@ -2041,7 +2369,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CalibrationIn"];
+                "application/json": components["schemas"]["SchedulePut"];
             };
         };
         responses: {
