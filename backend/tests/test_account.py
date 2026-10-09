@@ -83,7 +83,7 @@ def test_whatsapp_and_schedule_endpoints(client):
     r = client.post("/me/notify/test", headers=h).json()
     assert r["status"] in ("logged", "sent", "failed")
     assert client.get("/me/notifications", headers=h).json()[0]["to"] == "+919876543210"
-    blocks = [[f"2026-10-10T{h_:02d}:{m:02d}:00Z", 10.0] for h_ in range(0, 24) for m in (0, 15, 30, 45)][:96]
+    blocks = [[f"2026-10-10T{h_:02d}:{m:02d}:00Z", 10.0] for h_ in range(24) for m in (0, 15, 30, 45)][:96]
     first = client.put("/me/schedule", headers=h, json={"date": "2026-10-10", "blocks": blocks}).json()
     again = client.put("/me/schedule", headers=h, json={"date": "2026-10-10", "blocks": blocks}).json()
     assert first["revision"] == 0 and again["revision"] == 1 and len(again["blocks"]) == 96
