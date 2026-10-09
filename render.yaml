@@ -1,7 +1,9 @@
 services:
   - type: web
     name: terra-api
-    env: docker
+    runtime: docker
+    plan: free
+    region: singapore
     dockerfilePath: backend/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -13,9 +15,4 @@ services:
       - key: TERRA_CORS_ORIGINS
         sync: false
       - key: TERRA_DB_URL
-        sync: false
-    dockerBuildArgs:
-      - key: ARTIFACT_URL
-        sync: false
-      - key: ARTIFACT_SHA256
         sync: false

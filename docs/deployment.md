@@ -98,12 +98,11 @@ And the SHA256 checksum is located inside `dist/terra-artifacts-20261009T001709Z
 2. Click **New +** → **Blueprint**.
 3. Connect repository `OVERxPOWERED/AGNITIA-TERRA06` (branch `main`).
 4. Render detects [`render.yaml`](../render.yaml).
-5. Fill in the required parameters when prompted:
+5. Render prompts only for the two secrets below (`sync: false`); everything else comes from `render.yaml`:
 
 | Variable / Argument | Type | Source / Value | Notes |
 |---|---|---|---|
-| `ARTIFACT_URL` | Build Argument | `https://github.com/OVERxPOWERED/AGNITIA-TERRA06/releases/download/v0.1.0-artifacts/terra-artifacts-<timestamp>.zip` | Direct download URL of release zip |
-| `ARTIFACT_SHA256` | Build Argument | SHA256 from the `.sha256` file | Verified during Docker build via `sha256sum` |
+| `ARTIFACT_URL` / `ARTIFACT_SHA256` | Dockerfile defaults | already set in `backend/Dockerfile` to the published release `artifacts-20261009` | Nothing to type. For a NEW bundle: create a new release, then edit the two `ARG` defaults in `backend/Dockerfile` and push |
 | `TERRA_DB_URL` | Environment Variable | `postgres://user:pass@ep-xyz.neon.tech/neondb?sslmode=require` | Neon connection string |
 | `TERRA_CORS_ORIGINS` | Environment Variable | `http://localhost:3000` (initially) | Update to Vercel URL in Step 6 |
 | `TERRA_MODE` | Environment Variable | `replay` | Set by `render.yaml` |
@@ -197,7 +196,7 @@ curl -f -X POST "$API/whatif" \
 
 If a release bundle contains issues:
 1. Identify the previous working release tag or bundle on GitHub Releases (e.g. `v0.0.9-artifacts`).
-2. Update `ARTIFACT_URL` and `ARTIFACT_SHA256` in Render's **Environment** tab.
+2. Edit the two `ARG` defaults (`ARTIFACT_URL`, `ARTIFACT_SHA256`) in `backend/Dockerfile` to the previous release, push, and let Render redeploy.
 3. Click **Manual Deploy** → **Clear build cache & deploy**.
 
 ---

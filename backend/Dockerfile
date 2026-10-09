@@ -22,8 +22,10 @@ COPY config config
 COPY docs docs
 
 # Artifact delivery via GitHub Release asset build args
-ARG ARTIFACT_URL=""
-ARG ARTIFACT_SHA256=""
+# Defaults point at the published release asset (public URL + checksum, nothing secret).
+# Override with --build-arg when publishing a new bundle (see docs/deployment.md).
+ARG ARTIFACT_URL="https://github.com/OVERxPOWERED/AGNITIA-TERRA06/releases/download/artifacts-20261009/terra-artifacts-20261009T024331Z.zip"
+ARG ARTIFACT_SHA256="265ce1e12dc8a6f1284aab958f19e4c049ec2cb30a9503a010b27e419713ec50"
 
 RUN if [ -n "$ARTIFACT_URL" ]; then \
       echo "Downloading runtime artifacts from ${ARTIFACT_URL}..." && \
