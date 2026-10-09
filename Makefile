@@ -4,7 +4,7 @@ ML_ENV = cd ml &&
 API_ENV = cd backend &&
 
 .PHONY: setup setup-ml setup-backend setup-web data data-synthetic frame calibrate real-benchmark train evaluate \
-        report forecast demo-synthetic api web test test-ml test-backend lint types export-kaggle clean-artifacts
+        report forecast demo-synthetic api web test test-ml test-backend lint types export-kaggle clean-artifacts bundle
 
 setup: setup-ml setup-backend setup-web
 
@@ -73,3 +73,6 @@ export-kaggle:
 
 clean-artifacts:
 	rm -rf artifacts/models artifacts/backtests artifacts/evaluation artifacts/runs
+
+bundle:          ## package runtime artifacts into dist/ for deployment release
+	$(PY) scripts/make_deploy_bundle.py

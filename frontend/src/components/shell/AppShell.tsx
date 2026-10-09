@@ -3,10 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useHealth, useLiveUpdates } from "@/hooks/api";
+import { getApiBaseConfigError, RAW_API_BASE } from "@/lib/api/client";
 import type { AlertOut } from "@/lib/api/types";
 import { cn } from "@/lib/cn";
 import { toIST } from "@/lib/format";
-import { Badge } from "../ui/primitives";
+import { Badge, Spinner } from "../ui/primitives";
 import { NAV } from "./nav";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -16,6 +17,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const onAlert = useCallback((a: AlertOut) => { if (a.severity !== "info") setToast(a); }, []);
   useLiveUpdates(onAlert);
   const mode = health.data?.mode?.toUpperCase();
+
+  // Fail loudly if NEXT_PUBLIC_API_BASE is missing or misconfigured in production builds
+  const configError = getApiBaseConfigError();
+  if (configError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg p-6 text-text">
+        <div className="w-full max-w-lg space-y-4 rounded-2xl border border-bad/50 bg-panel p-6 shadow-xl">
+          <div className="flex items-center gap-3 text-lg font-semibold text-bad">
+            <span className="text-2xl">⚠️</span>
+            Configuration Error: NEXT_PUBLIC_API_BASE
+          </div>
+          <p className="text-sm text-text/80">{configError}</p>
+          <div className="space-y-2 rounded-lg bg-border/40 p-3 text-xs text-muted">
+            <p className="font-semibold text-text">How to resolve on Vercel:</p>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>Open your project on Vercel → <strong>Settings</strong> → <strong>Environment Variables</strong>.</li>
+              <li>Add variable <code className="font-mono text-text">NEXT_PUBLIC_API_BASE</code> with your Render service URL (e.g. <code className="font-mono text-text">https://terra-api.onrender.com</code>).</li>
+              <li>Trigger a redeploy (Next.js statically bakes this variable into client bundles during build).</li>
+            </ol>
+            {RAW_API_BASE && (
+              <p className="mt-2 text-muted">
+                Current build value: <code className="font-mono text-text">{RAW_API_BASE}</code>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Waking up indicator in header
+  const isWakingUp = health.failureCount > 0 && !health.data;
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -37,7 +70,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 md:px-6">
           <div className="text-sm text-muted">
-            {health.data?.latest_issue_time_utc ? <>Forecast issued {toIST(health.data.latest_issue_time_utc)}</> : "Waiting for first forecast…"}
+            {isWakingUp ? (
+              <div className="flex items-center gap-2 font-medium text-amber-500" role="status" aria-live="polite">
+                <Spinner className="h-4 w-4" />
+                <span>The API is waking up (free hosting sleeps when idle). Retrying automatically… attempt {health.failureCount}</span>
+              </div>
+            ) : health.data?.latest_issue_time_utc ? (
+              <>Forecast issued {toIST(health.data.latest_issue_time_utc)}</>
+            ) : (
+              "Waiting for first forecast…"
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {health.data?.mode === "live" && health.data.latest_issue_time_utc &&

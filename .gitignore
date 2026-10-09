@@ -33,3 +33,4 @@ artifacts/**
 .DS_Store
 Thumbs.db
 frontend/openapi.json
+dist/

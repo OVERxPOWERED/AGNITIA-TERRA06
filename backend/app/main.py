@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.routes import alerts, assumptions, dispatch, dsm, forecast, health, impact, models, whatif
-from app.db.models import engine
+from app.db.models import engine, reseed_if_empty
 from app.scheduler import ForecastJob, attach_loop
 from app.services.runs import NoRunYet
 from app.settings import get_settings
@@ -16,7 +16,8 @@ from app.settings import get_settings
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    engine()                                   # create SQLite tables
+    engine()                                   # initialize DB tables (with fallback)
+    reseed_if_empty()                          # re-seed if DB is empty
     from app.services import runs
     try:
         runs.latest()                          # warm caches

@@ -42,6 +42,13 @@ export default function ControlRoom() {
   const avgTrust = hasData ? h.reduce((s, p) => s + p.trust_score, 0) / h.length : null;
   const upcoming = (alerts.data ?? []).filter((a) => !a.acknowledged).slice(0, 4);
 
+  const forecastQueries = [hybrid, solar, wind, dispatch];
+  const retryingForecast = forecastQueries.filter((q) => q.failureCount > 0 && !q.isError);
+  const isForecastRetrying = retryingForecast.length > 0;
+  const forecastAttempt = isForecastRetrying ? Math.max(...retryingForecast.map((q) => q.failureCount)) : 1;
+
+  const isAlertsRetrying = alerts.failureCount > 0 && !alerts.isError;
+
   const isForecastLoading = hybrid.isLoading || solar.isLoading || wind.isLoading || dispatch.isLoading;
   const forecastError = hybrid.error ?? solar.error ?? wind.error ?? dispatch.error;
   const refetchForecast = () => Promise.all([hybrid.refetch(), solar.refetch(), wind.refetch(), dispatch.refetch()]);
@@ -58,14 +65,28 @@ export default function ControlRoom() {
       </div>
       <Card>
         <CardTitle>Combined solar + wind forecast with 80% band</CardTitle>
-        <QueryState isLoading={isForecastLoading} error={forecastError} refetch={refetchForecast}>
+        <QueryState
+          isLoading={isForecastLoading}
+          error={forecastError}
+          refetch={refetchForecast}
+          isRetrying={isForecastRetrying}
+          retryCount={forecastAttempt}
+        >
           {option && <EChart option={option} height={360} ariaLabel="Hybrid forecast for the next 48 hours with P10–P90 band, solar and wind medians and demand" />}
           <div className="mt-3"><TrustRibbon points={h} /></div>
         </QueryState>
       </Card>
       <Card>
         <CardTitle>Next alerts</CardTitle>
-        <QueryState isLoading={alerts.isLoading} error={alerts.error} refetch={alerts.refetch} empty={!upcoming.length} height="h-16">
+        <QueryState
+          isLoading={alerts.isLoading}
+          error={alerts.error}
+          refetch={alerts.refetch}
+          empty={!upcoming.length}
+          height="h-16"
+          isRetrying={isAlertsRetrying}
+          retryCount={alerts.failureCount}
+        >
           <ul className="divide-y divide-border">
             {upcoming.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">

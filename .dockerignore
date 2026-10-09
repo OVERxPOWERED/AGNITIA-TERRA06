@@ -1,0 +1,31 @@
+# Virtualenvs & dependencies
+.venv/
+venv/
+node_modules/
+
+# Local data & artifacts (artifacts delivered via release asset build arg)
+data/
+artifacts/
+dist/
+
+# Git & caches
+.git/
+.github/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# Frontend builds
+frontend/.next/
+frontend/out/
+
+# Docs images (keep docs/*.md for /assumptions endpoint)
+docs/images/
+
+# Sensitive files
+.env
+.env.*
+kaggle.json
+*.pem
+*.key

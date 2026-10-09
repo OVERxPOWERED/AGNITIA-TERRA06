@@ -3,10 +3,19 @@ services:
     name: terra-api
     env: docker
     dockerfilePath: backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
     envVars:
       - key: TERRA_MODE
         value: replay
+      - key: TERRA_SCHEDULER_ENABLED
+        value: "false"
       - key: TERRA_CORS_ORIGINS
-        value: 'https://agnitia-terra06.vercel.app' # Replace with actual Vercel URL
+        sync: false
       - key: TERRA_DB_URL
-        value: sqlite:////app/artifacts/terra.db
+        sync: false
+    dockerBuildArgs:
+      - key: ARTIFACT_URL
+        sync: false
+      - key: ARTIFACT_SHA256
+        sync: false

@@ -56,7 +56,7 @@ If a target does not exist yet, it belongs to subphase 0.6 — create it there, 
 5. **Units in names where ambiguous** (`_mw`, `_mwh`, `_wm2`). Power in MW, energy in MWh.
 6. **Config, not constants.** Plant, battery, thresholds, DSM rules, costs live in `config/*.yaml`.
 7. **Attribution.** Show "Weather data by Open-Meteo.com (CC BY 4.0)" wherever weather-derived data is displayed.
-8. **No secrets or large data in git.** `.env`, `kaggle.json`, raw/processed data and model artifacts are gitignored.
+8. **No secrets or large data in git.** `.env`, `kaggle.json`, raw/processed data and model artifacts are gitignored. Model artifacts stay out of git history; a versioned GitHub Release asset is the supported delivery channel for deployment.
 9. **Training budget.** Any training/fine-tuning job must stay under 12 hours; planned budget is ≤ 2 h per job. Log wall-clock time in the artifact `meta.json`.
 10. **Deployment is on hold** until the user explicitly says to deploy (roadmap 8.5).
 11. **Don't rewrite the roadmap silently.** Changes to scope/decisions go in `ROADMAP.md` changelog and `.agent/context/decisions.md`.

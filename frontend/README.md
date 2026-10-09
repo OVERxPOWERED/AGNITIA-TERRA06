@@ -33,6 +33,15 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Deployment Configuration (`NEXT_PUBLIC_API_BASE`)
+
+Next.js bakes environment variables prefixed with `NEXT_PUBLIC_` into the static JavaScript bundle at build time.
+
+Before triggering a deployment build on Vercel:
+1. Navigate to **Project Settings → Environment Variables**.
+2. Add `NEXT_PUBLIC_API_BASE` pointing to your deployed backend (e.g. `https://terra-api.onrender.com`).
+3. If this variable is missing or points to `localhost` in a production build, the UI will display a prominent configuration error card to prevent silent runtime failures.
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
