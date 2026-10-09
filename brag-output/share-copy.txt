@@ -1,0 +1,1 @@
+Introducing Vidyut: hybrid solar and wind forecasting, hour by hour. Every hour gets an 80% range and a confidence score, and the new Location page forecasts the same plant at another site on live weather. Real Open-Meteo weather, virtual plant at a real location.

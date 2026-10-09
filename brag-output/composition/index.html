@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="assets/rms.js"></script>
+    <style>
+      @font-face { font-family: "Geist"; src: url("assets/fonts/Geist-Variable.woff2") format("woff2"); font-weight: 100 900; }
+      @font-face { font-family: "Geist Mono"; src: url("assets/fonts/GeistMono-Medium.woff2") format("woff2"); font-weight: 500; }
+      :root {
+        --paper: #edf0e8; --surface: #fafbf7; --ink: #17251e; --muted: #586a60; --line: #d5dcce;
+        --accent: #1e5a43; --solar: #b0700f; --wind: #1f8a7d;
+        --d-paper: #0f1512; --d-ink: #e7efe9; --d-muted: #93a39a; --d-accent: #5fc49a; --d-solar: #f0b13c; --d-wind: #4ccfc0;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+      body { font-family: "Geist", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--paper); }
+      .scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+      #glow { position: absolute; inset: 0; background: radial-gradient(60% 60% at 50% 55%, rgba(30, 90, 67, 0.22), rgba(30, 90, 67, 0) 70%); opacity: 0.3; }
+      #dark { position: absolute; inset: 0; background: var(--d-paper); opacity: 0; }
+      #glow2 { position: absolute; inset: 0; background: radial-gradient(55% 55% at 50% 50%, rgba(95, 196, 154, 0.16), rgba(95, 196, 154, 0) 70%); opacity: 0; }
+
+      /* scene 1 */
+      #bars { position: absolute; left: 80px; right: 80px; bottom: 0; height: 460px; display: flex; align-items: flex-end; gap: 9px; }
+      #bars i { flex: 1; height: 0; border-radius: 4px 4px 0 0; background: var(--accent); opacity: 0.26; }
+      .hook { position: absolute; left: 140px; font-size: 152px; font-weight: 600; letter-spacing: -0.035em; line-height: 1; white-space: nowrap; }
+      #l1 { top: 190px; } #l2 { top: 350px; color: var(--accent); }
+
+      /* scene 2-3 */
+      #lockup { position: absolute; left: 80px; top: 44px; display: flex; align-items: center; gap: 16px; }
+      #lockup span { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
+      #wrap { position: absolute; left: 0; top: 0; width: 1480px; height: 897px; transform-origin: 0 0; }
+      #wrap img { width: 100%; height: 100%; display: block; border-radius: 14px; box-shadow: 0 30px 80px rgba(23, 37, 30, 0.18), 0 0 0 1px var(--line); }
+      .pill { position: absolute; display: flex; align-items: center; gap: 14px; padding: 14px 26px; background: var(--surface); border-radius: 999px; font-size: 32px; font-weight: 500; box-shadow: 0 10px 30px rgba(23, 37, 30, 0.16), 0 0 0 1px var(--line); white-space: nowrap; }
+      .pill b { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); display: block; }
+      #p1 { left: 120px; top: 14px; } #p2 { left: 120px; top: 986px; }
+
+      /* scene 4 */
+      #cap { position: absolute; left: 130px; top: 54px; font-size: 68px; font-weight: 600; letter-spacing: -0.03em; white-space: nowrap; }
+      #flow { position: absolute; left: 110px; top: 190px; width: 1700px; height: 830px; }
+      #flow #f4 { left: 130px; width: 1440px; }
+      #flow img { position: absolute; left: 0; top: 0; width: 1700px; display: block; border-radius: 12px; box-shadow: 0 24px 70px rgba(23, 37, 30, 0.16), 0 0 0 1px var(--line); opacity: 0; }
+      #cursor { position: absolute; left: 0; top: 0; width: 44px; height: 44px; opacity: 0; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3)); }
+
+      /* scene 5 */
+      .stat { position: absolute; top: 230px; width: 700px; text-align: center; opacity: 0; }
+      .stat .n { font-family: "Geist Mono", monospace; font-weight: 500; font-size: 270px; letter-spacing: -0.06em; line-height: 1; font-variant-numeric: tabular-nums; }
+      .stat .t { margin-top: 18px; font-size: 40px; color: var(--d-muted); }
+      #sa { left: 190px; } #sa .n { color: var(--d-solar); }
+      #sb { left: 1030px; } #sb .n { color: var(--d-wind); }
+      #sent { position: absolute; left: 0; width: 1920px; top: 690px; text-align: center; font-size: 76px; font-weight: 600; letter-spacing: -0.03em; color: var(--d-ink); opacity: 0; }
+      #sent2 { position: absolute; left: 0; width: 1920px; top: 800px; text-align: center; font-size: 40px; color: var(--d-muted); opacity: 0; }
+
+      /* scene 6 */
+      #brand { position: absolute; left: 0; width: 1920px; top: 270px; display: flex; flex-direction: column; align-items: center; opacity: 0; }
+      #brand .row { display: flex; align-items: center; gap: 36px; }
+      #brand .word { font-size: 170px; font-weight: 600; letter-spacing: -0.04em; color: var(--d-ink); line-height: 1; }
+      #tag { margin-top: 36px; font-size: 54px; color: var(--d-ink); letter-spacing: -0.02em; opacity: 0; }
+      #foot { position: absolute; left: 0; width: 1920px; bottom: 90px; text-align: center; font-size: 28px; color: var(--d-muted); line-height: 1.6; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="24.5" data-width="1920" data-height="1080">
+      <div id="glow" class="clip" data-start="0" data-duration="24.5" data-track-index="0"></div>
+      <div id="dark" class="clip" data-start="0" data-duration="24.5" data-track-index="0"></div>
+      <div id="glow2" class="clip" data-start="0" data-duration="24.5" data-track-index="0"></div>
+
+      <!-- 1. hook -->
+      <div id="s1" class="clip scene" data-start="0" data-duration="3.7" data-track-index="1">
+        <div id="bars"></div>
+        <h1 id="l1" class="hook">Tomorrow's power,</h1>
+        <h1 id="l2" class="hook">hour by hour.</h1>
+      </div>
+
+      <!-- 2-3. reveal and push into the chart -->
+      <div id="s23" class="clip scene" data-start="3.45" data-duration="9.98" data-track-index="2">
+        <div id="lockup">
+          <svg width="58" height="58" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#1e5a43"/><path d="M8 8.5 L15.2 24" stroke="#f6faf7" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M24.5 8 L17.2 15.2 H21.4 L15.2 24" stroke="#f6faf7" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+          <span>Vidyut</span>
+        </div>
+        <div id="wrap"><img src="assets/img/home_main.png" alt="Vidyut control room: next 48 hours" /></div>
+        <div id="p1" class="pill"><b></b>Median forecast with its 80% range</div>
+        <div id="p2" class="pill"><b></b>Forecast confidence by hour</div>
+      </div>
+
+      <!-- 4. location flow -->
+      <div id="s4" class="clip scene" data-start="12.93" data-duration="5.76" data-track-index="3">
+        <div id="cap">Same plant. Another site. Live weather.</div>
+        <div id="flow">
+          <img id="f1" src="assets/img/s1_pick.png" alt="Location page: choose a site" />
+          <img id="f2" src="assets/img/s2_sel.png" alt="Pavagada selected" />
+          <img id="f3" src="assets/img/s3_prog.png" alt="Building a live forecast" />
+          <img id="f4" src="assets/img/s4_result.png" alt="Live forecast result for Pavagada" />
+        </div>
+        <svg id="cursor" viewBox="0 0 24 24"><path d="M5 2 L5 19 L9.4 15 L12.2 21.6 L14.8 20.5 L12 14 L18 14 Z" fill="#17251e" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      </div>
+
+      <!-- 5. proof -->
+      <div id="s5" class="clip scene" data-start="18.19" data-duration="3.65" data-track-index="4">
+        <div id="sa" class="stat"><div class="n"><span id="na">0</span>%</div><div class="t">Solar, daylight hours</div></div>
+        <div id="sb" class="stat"><div class="n"><span id="nb">0</span>%</div><div class="t">Wind</div></div>
+        <div id="sent">less error than persistence</div>
+        <div id="sent2">on held-out test days</div>
+      </div>
+
+      <!-- 6. outro -->
+      <div id="s6" class="clip scene" data-start="21.34" data-duration="3.16" data-track-index="5">
+        <div id="brand">
+          <div class="row">
+            <svg width="150" height="150" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#5fc49a"/><path d="M8 8.5 L15.2 24" stroke="#0f1512" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M24.5 8 L17.2 15.2 H21.4 L15.2 24" stroke="#0f1512" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            <div class="word">Vidyut</div>
+          </div>
+          <div id="tag">Hybrid solar and wind forecasting</div>
+        </div>
+        <div id="foot">Weather data by Open-Meteo.com (CC BY 4.0)<br />Virtual digital-twin plant at a real location, calibrated on real data</div>
+      </div>
+
+      <!-- audio -->
+      <audio id="music" src="assets/music/bed.mp3" data-start="0" data-duration="24.5" data-volume="0.45" data-fade-in="0.6" data-fade-out="1.6" data-track-index="10"></audio>
+      <audio id="x1" src="assets/sfx/impact/impactSoft_medium_001.ogg" data-start="3.7" data-duration="0.18" data-volume="0.6" data-track-index="11"></audio>
+      <audio id="x2" src="assets/sfx/casino/card-slide-1.ogg" data-start="8.44" data-duration="0.5" data-volume="0.4" data-track-index="12"></audio>
+      <audio id="x3" src="assets/sfx/interface/bong_001.ogg" data-start="10.54" data-duration="0.12" data-volume="0.35" data-track-index="13"></audio>
+      <audio id="x4" src="assets/sfx/interface/click_003.ogg" data-start="14.22" data-duration="0.02" data-volume="0.8" data-track-index="14"></audio>
+      <audio id="x5" src="assets/sfx/interface/click_005.ogg" data-start="15.28" data-duration="0.02" data-volume="0.8" data-track-index="15"></audio>
+      <audio id="x6" src="assets/sfx/casino/card-slide-1.ogg" data-start="16.34" data-duration="0.5" data-volume="0.4" data-track-index="16"></audio>
+      <audio id="x7" src="assets/sfx/impact/impactBell_heavy_000.ogg" data-start="21.59" data-duration="1.4" data-volume="0.45" data-track-index="17"></audio>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      /* ---- scene 1: hook ---- */
+      const bars = document.getElementById("bars");
+      const H = [];
+      for (let i = 0; i < 48; i++) {
+        const h = i % 24;
+        const sun = Math.max(0, Math.sin(((h - 6) / 12) * Math.PI));
+        const wind = 0.5 + 0.5 * Math.sin(i * 0.43 + 1.2);
+        H.push(60 + 330 * (0.62 * sun + 0.32 * wind * (1 - 0.4 * sun)));
+        const b = document.createElement("i");
+        bars.appendChild(b);
+      }
+      const barEls = bars.querySelectorAll("i");
+      barEls.forEach((el, i) => tl.to(el, { height: H[i], duration: 0.7, ease: "power3.out" }, 0.3 + i * 0.03)); // beat-grid: ticks 1.07 to 2.65 span the growth
+      tl.fromTo("#l1", { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 0.4);
+      tl.fromTo("#l2", { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out" }, 1.6);
+      tl.to("#s1", { opacity: 0, duration: 0.25, ease: "power1.in" }, 3.45);
+
+      /* ---- scene 2-3: reveal, then push into the chart ---- */
+      tl.set("#wrap", { x: 90, y: 120, scale: 1.2 }, 0);
+      tl.fromTo("#wrap", { opacity: 0, yPercent: 12 }, { opacity: 1, yPercent: 0, duration: 0.8, ease: "power3.out" }, 3.7); // beat-locked: 3.70s
+      tl.fromTo("#lockup", { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" }, 4.1);
+      tl.to("#wrap", { x: 70, y: 112, scale: 1.24, duration: 3.9, ease: "none" }, 4.5);
+      tl.to("#wrap", { x: -12, y: -240, scale: 1.3, duration: 1.0, ease: "power2.inOut" }, 8.44); // beat-locked: 8.44s
+      tl.to("#lockup", { opacity: 0, duration: 0.4 }, 8.44);
+      tl.fromTo("#p1", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 9.5);
+      tl.fromTo("#p2", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 10.54); // beat-locked: 10.54s
+      tl.to("#s23", { opacity: 0, duration: 0.3, ease: "power1.in" }, 13.13);
+
+      /* ---- scene 4: location flow ---- */
+      tl.fromTo("#cap", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 13.3);
+      tl.fromTo("#f1", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 13.4);
+      // select Pavagada (beat-grid: 14.22)
+      tl.set("#cursor", { x: 1500, y: 640 }, 13.4);
+      tl.to("#cursor", { opacity: 1, duration: 0.3 }, 13.5);
+      tl.to("#cursor", { x: 312, y: 447, duration: 0.7, ease: "power2.inOut" }, 13.5);
+      tl.to("#cursor", { scale: 0.82, duration: 0.07 }, 14.22).to("#cursor", { scale: 1, duration: 0.12 }, 14.29);
+      tl.to("#f2", { opacity: 1, duration: 0.08 }, 14.22);
+      // click Run live forecast (beat-grid: 15.28)
+      tl.to("#cursor", { x: 189, y: 567, duration: 0.7, ease: "power2.inOut" }, 14.45);
+      tl.to("#cursor", { scale: 0.82, duration: 0.07 }, 15.28).to("#cursor", { scale: 1, duration: 0.12 }, 15.35);
+      tl.to("#f3", { opacity: 1, duration: 0.08 }, 15.28);
+      tl.to("#cursor", { opacity: 0, duration: 0.3 }, 15.6);
+      // result (beat-grid: 16.34)
+      tl.to(["#f1", "#f2", "#f3"], { opacity: 0, y: -30, duration: 0.35, ease: "power2.in" }, 16.3);
+      tl.fromTo("#f4", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 16.34);
+      tl.to("#s4", { opacity: 0, duration: 0.3, ease: "power1.in" }, 18.39);
+
+      /* ---- scene 5: proof (dark) ---- */
+      tl.to("#dark", { opacity: 1, duration: 0.5, ease: "power1.inOut" }, 18.2);
+      tl.to("#glow", { opacity: 0, duration: 0.4 }, 18.2);
+      const ca = { v: 0 }, cb = { v: 0 };
+      tl.fromTo("#sa", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 18.7);
+      tl.to(ca, { v: 28, duration: 0.8, ease: "power2.out", onUpdate: () => (document.getElementById("na").textContent = Math.round(ca.v)) }, 18.7);
+      tl.fromTo("#sb", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 19.22);
+      tl.to(cb, { v: 36, duration: 0.8, ease: "power2.out", onUpdate: () => (document.getElementById("nb").textContent = Math.round(cb.v)) }, 19.22);
+      tl.fromTo("#sent", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, 19.7);
+      tl.fromTo("#sent2", { opacity: 0 }, { opacity: 1, duration: 0.5 }, 20.2);
+      tl.to("#s5", { opacity: 0, duration: 0.25, ease: "power1.in" }, 21.38);
+
+      /* ---- scene 6: outro ---- */
+      tl.fromTo("#brand", { opacity: 0, scale: 0.94 }, { opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, 21.59); // beat-locked-ish: 21.59s
+      tl.to("#glow2", { opacity: 0.8, duration: 0.8 }, 21.6);
+      tl.fromTo("#tag", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 22.2);
+      tl.fromTo("#foot", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 22.7);
+
+      /* ---- subtle audio-reactive glow: music RMS breathes the background ---- */
+      const proxy = { t: 0 };
+      tl.to(proxy, {
+        t: 24.5, duration: 24.5, ease: "none",
+        onUpdate: () => {
+          const r = window.__RMS || [];
+          const v = r[Math.min(r.length - 1, Math.floor(proxy.t * 30))] || 0;
+          document.getElementById("glow").style.opacity = proxy.t < 18.2 ? 0.2 + 0.7 * v : 0;
+          document.getElementById("glow2").style.filter = "brightness(" + (0.85 + 0.5 * v) + ")";
+        },
+      }, 0);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>
