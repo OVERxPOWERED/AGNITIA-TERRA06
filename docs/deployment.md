@@ -140,19 +140,21 @@ And the SHA256 checksum is located inside `dist/terra-artifacts-20261009T001709Z
 
 ---
 
-## Step 7: Configure Uptime Pinger (Demo Window)
+## Step 7: Configure the Pingers (Demo Window)
 
-To mitigate Render's free-tier spin-down (15 minutes of inactivity):
+Two free tiers go to sleep: Render (after 15 min idle, ~1 min wake-up) and Neon (compute suspends after ~5 idle min, ~1 s wake-up).
+The app already tolerates both (the frontend shows "API is waking up" and retries; `/alerts` falls back to the run file if the
+database is unreachable), so pingers are only needed to make a live demo feel instant.
 
-1. Go to [UptimeRobot](https://uptimerobot.com/) or [cron-job.org](https://cron-job.org/).
-2. Create an HTTP monitor:
-   - **URL**: `https://terra-api.onrender.com/health`
-   - **Monitoring Interval**: Every `5 minutes`
-   - **HTTP Method**: `GET`
-   - **Expected Status**: `200 OK`
-3. **Usage Guidelines**:
-   - Enable this monitor **only during the evaluation / demo window**.
-   - Render's free tier provides 750 hours/month of free web service usage (sufficient for one always-on service throughout a 30-day month). Pausing the pinger outside demo windows conserves free-tier hours.
+| Monitor | URL | Interval | Purpose |
+|---|---|---|---|
+| UptimeRobot (HTTP(s), 5 min) | `https://<your-api>.onrender.com/health` | 5 min | keeps Render awake + alerts you by email if it is down. `/health` never touches the database. |
+| cron-job.org (GET) | `https://<your-api>.onrender.com/health/deep` | every 2 min | keeps Render AND Neon awake (runs `SELECT 1`; always HTTP 200, check the `db` field in the JSON). |
+
+Enable them only for the judging window (a few days) and pause them afterwards. Neon free allows 100 compute-hours/month
+(0.25 CU minimum): a 3-day always-on window costs roughly 18, a whole month would exceed the allowance.
+
+cron-job.org setup: create account -> **Create cronjob** -> URL above, schedule **Every 2 minutes**, request method GET -> Save.
 
 ---
 

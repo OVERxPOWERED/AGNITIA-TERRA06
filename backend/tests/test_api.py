@@ -90,3 +90,30 @@ def test_schedule_csv_forces_download(client):
     assert r.headers["content-type"].startswith("text/csv")
     assert 'attachment; filename="terra_schedule_hybrid.csv"' in r.headers["content-disposition"]
     assert len(r.text.strip().splitlines()) == 97          # header + 96 blocks
+
+
+def test_health_deep_reports_db(client):
+    for r in (client.get("/health/deep"), client.head("/health/deep")):
+        assert r.status_code == 200
+    body = client.get("/health/deep").json()
+    assert body["status"] == "ok" and body["db"] == "ok" and body["latency_ms"] >= 0
+
+
+def test_alerts_fall_back_to_run_file_when_db_down(client, monkeypatch):
+    from app.db import models as db
+
+    def boom(*a, **k):
+        raise RuntimeError("neon suspended")
+    monkeypatch.setattr(db, "list_alerts", boom)
+    r = client.get("/alerts")
+    assert r.status_code == 200
+    assert all(a["acknowledged"] is False for a in r.json())
+
+
+def test_ack_returns_503_when_db_down(client, monkeypatch):
+    from app.db import models as db
+
+    def boom(*a, **k):
+        raise RuntimeError("neon suspended")
+    monkeypatch.setattr(db, "acknowledge", boom)
+    assert client.post("/alerts/whatever/ack").status_code == 503

@@ -117,6 +117,20 @@ def engine() -> Engine:
         return _engine
 
 
+def ping() -> dict[str, Any]:
+    """Cheap DB round-trip for keep-warm pingers (never raises). Neon free tier suspends compute after
+    ~5 idle minutes; any query resets that timer."""
+    import time
+    t0 = time.perf_counter()
+    try:
+        with engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"db": "ok", "latency_ms": round((time.perf_counter() - t0) * 1000, 1)}
+    except Exception as exc:  # noqa: BLE001
+        return {"db": "unavailable", "error": type(exc).__name__,
+                "latency_ms": round((time.perf_counter() - t0) * 1000, 1)}
+
+
 def record_run(name: str, meta: dict, alerts: list[dict]) -> None:
     """Persist run metadata and alerts into the database (idempotent)."""
     with Session(engine()) as s:
