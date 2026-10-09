@@ -97,7 +97,8 @@ class OpenMeteoClient:
             data = self._fetch_live(url, params)
         except Exception as exc:  # noqa: BLE001
             if hit and now - hit[0] < LIVE_STALE_S:
-                log.warning("Open-Meteo unavailable (%s); serving the answer from %d min ago", type(exc).__name__, (now - hit[0]) // 60)
+                log.warning("Open-Meteo unavailable (%s); serving the answer from %d min ago",
+                            type(exc).__name__, (now - hit[0]) // 60)
                 return hit[1]
             raise
         _LIVE[key] = (now, data)
