@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     monitor_minutes: int = 30                          # how often signed-in plants with WhatsApp on are checked
     monitor_enabled: bool = True
     max_whatsapp_per_day: int = 10
+    monitor_token: str = ""                            # secret for POST /internal/monitor (external cron); empty = endpoint off
 
     @property
     def cors_list(self) -> list[str]:

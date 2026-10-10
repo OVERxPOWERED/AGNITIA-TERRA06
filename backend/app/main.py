@@ -38,11 +38,13 @@ async def lifespan(app: FastAPI):
     app.state.subscribers = set()
     attach_loop(app)
     job = ForecastJob(app)
-    if get_settings().scheduler_enabled:
-        job.start()
+    cfg = get_settings()
+    running = cfg.scheduler_enabled or (cfg.monitor_enabled and cfg.whatsapp_provider.lower() != "none")
+    if running:
+        job.start(forecast=cfg.scheduler_enabled)
     app.state.job = job
     yield
-    if get_settings().scheduler_enabled:
+    if running:
         job.stop()
 
 

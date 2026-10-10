@@ -54,9 +54,11 @@ class ForecastJob:
         except Exception:
             log.exception("plant monitor failed")
 
-    def start(self) -> None:
-        self.scheduler.add_job(self.tick, "interval", minutes=self.settings.schedule_minutes,
-                               next_run_time=pd.Timestamp.now(tz="UTC").to_pydatetime())
+    def start(self, forecast: bool = True) -> None:
+        """`forecast=False` starts only the WhatsApp plant monitor (deployments that keep the forecast job off)."""
+        if forecast:
+            self.scheduler.add_job(self.tick, "interval", minutes=self.settings.schedule_minutes,
+                                   next_run_time=pd.Timestamp.now(tz="UTC").to_pydatetime())
         if self.settings.monitor_enabled:
             self.scheduler.add_job(self.monitor, "interval", minutes=self.settings.monitor_minutes,
                                    next_run_time=(pd.Timestamp.now(tz="UTC") + pd.Timedelta(minutes=2)).to_pydatetime(),

@@ -88,3 +88,20 @@ def test_whatsapp_and_schedule_endpoints(client):
     again = client.put("/me/schedule", headers=h, json={"date": "2026-10-10", "blocks": blocks}).json()
     assert first["revision"] == 0 and again["revision"] == 1 and len(again["blocks"]) == 96
     assert client.get("/me/schedule?date=2026-10-10", headers=h).json()["revision"] == 1
+
+
+def test_internal_monitor_needs_token(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+    from app.settings import get_settings
+    monkeypatch.setenv("TERRA_MONITOR_TOKEN", "s3cret")
+    get_settings.cache_clear()
+    try:
+        c = TestClient(create_app())
+        assert c.post("/internal/monitor").status_code == 404
+        assert c.post("/internal/monitor", headers={"X-Monitor-Token": "nope"}).status_code == 404
+        r = c.post("/internal/monitor", headers={"X-Monitor-Token": "s3cret"})
+        assert r.status_code == 200 and "plants" in r.json()
+    finally:
+        get_settings.cache_clear()

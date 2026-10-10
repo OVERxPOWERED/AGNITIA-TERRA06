@@ -1,6 +1,7 @@
 """Optional login and the signed-in user's plant (profile, location, calibration) stored on the server."""
 from __future__ import annotations
 
+import secrets
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -92,6 +93,16 @@ async def calibration(body: CalibrationIn) -> dict:
 def notify_status() -> dict:
     """Which WhatsApp provider the server is configured with (no secrets)."""
     return notify.provider_status()
+
+
+@router.post("/internal/monitor")
+async def internal_monitor(x_monitor_token: str | None = Header(default=None)) -> dict:
+    """Run the plant monitor for every signed-in plant. Called by an external cron (it also wakes a sleeping host)."""
+    from app.settings import get_settings
+    want = get_settings().monitor_token
+    if not want or not x_monitor_token or not secrets.compare_digest(x_monitor_token, want):
+        raise HTTPException(404, "Not found.")
+    return await run_in_threadpool(notify.monitor_once)
 
 
 @router.post("/me/notify/test")

@@ -1,0 +1,23 @@
+name: Plant alert monitor
+
+# Every 30 minutes: ask the deployed API to check signed-in plants and send new critical WhatsApp alerts.
+# Needed because a free host sleeps when idle, so an in-process timer alone would miss alerts.
+# Repository secrets: API_URL (e.g. https://terra-api-xxxx.onrender.com) and MONITOR_TOKEN (same value as the
+# TERRA_MONITOR_TOKEN environment variable on the API).
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run the monitor
+        env:
+          API_URL: ${{ secrets.API_URL }}
+          MONITOR_TOKEN: ${{ secrets.MONITOR_TOKEN }}
+        run: |
+          test -n "$API_URL" && test -n "$MONITOR_TOKEN" || { echo "API_URL / MONITOR_TOKEN secrets are not set"; exit 1; }
+          curl -fsS -m 300 --retry 3 --retry-delay 20 -X POST -H "X-Monitor-Token: $MONITOR_TOKEN" "$API_URL/internal/monitor"
