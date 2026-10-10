@@ -105,3 +105,14 @@ def test_internal_monitor_needs_token(monkeypatch):
         assert r.status_code == 200 and "plants" in r.json()
     finally:
         get_settings.cache_clear()
+
+
+def test_alert_message_matches_dashboard_card():
+    from app.services.notify import format_alert
+    a = {"type": "DEFICIT_VS_DEMAND", "source": "hybrid", "severity": "critical", "magnitude_mw": 30.2,
+         "message": "Supply may fall 30 MW short of demand (100% chance)",
+         "start_utc": "2026-10-10T01:00:00+00:00", "end_utc": "2026-10-10T01:00:00+00:00"}
+    text, params = format_alert("Vidyu-Trail", a)
+    assert len(params) == 5 and all("\n" not in p for p in params)
+    assert params[1].startswith("Short of demand · Hybrid") and "30.2 MW" in params[4]
+    assert "Line up backup power" in text and "Supply may fall 30 MW" in text

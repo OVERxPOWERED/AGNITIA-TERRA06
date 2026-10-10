@@ -56,7 +56,7 @@ def send_whatsapp(to: str, text: str, params: list[str]) -> tuple[str, str]:
             # otherwise plain text, which Twilio only delivers inside the 24 h window after the user last wrote.
             if s.twilio_content_sid:
                 body = {**base, "ContentSid": s.twilio_content_sid,
-                        "ContentVariables": json.dumps({"1": f"{params[0]}: {params[1]}"[:900], "2": params[2][:200]})}
+                        "ContentVariables": json.dumps({str(i + 1): _one_line(v)[:900] for i, v in enumerate(params)})}
                 r = requests.post(url, data=body, auth=auth, timeout=TIMEOUT_S)
                 if r.ok:
                     return "sent", r.json().get("sid", "")
@@ -75,11 +75,57 @@ def _ist(iso: str) -> str:
     return pd.Timestamp(iso).tz_convert("Asia/Kolkata").strftime("%d %b %H:%M")
 
 
+# Same wording as the dashboard (frontend/src/lib/alerts.ts), so the message shows what the alert card shows.
+ALERT_LABEL = {"LOW_GENERATION": "Low generation", "HIGH_GENERATION": "High generation", "RAMP": "Fast ramp",
+               "DEFICIT_VS_DEMAND": "Short of demand", "LOW_CONFIDENCE": "Low confidence",
+               "WEATHER_DISAGREEMENT": "Weather models disagree", "DEVIATION_RISK": "Revise your schedule"}
+ALERT_ACTION = {
+    "DEVIATION_RISK": "Revise the schedule with your load despatch centre before the window starts.",
+    "DEFICIT_VS_DEMAND": "Line up backup power or battery reserve for this window.",
+    "LOW_GENERATION": "Check backup and battery plans; consider revising the schedule.",
+    "HIGH_GENERATION": "Expect curtailment; check the export limit and charge the battery.",
+    "RAMP": "Prepare for a fast change in output; warn the control room.",
+    "LOW_CONFIDENCE": "Treat this window's forecast with caution and keep extra reserve.",
+    "WEATHER_DISAGREEMENT": "Weather models disagree; keep extra reserve and watch the next update.",
+}
+
+
+def _one_line(v: str) -> str:
+    """WhatsApp template variables cannot hold line breaks, tabs or runs of spaces."""
+    return " ".join(str(v).split())
+
+
+def _timing(a: dict, now: datetime | None = None) -> str:
+    now = now or datetime.now(timezone.utc)
+    st, en = pd.Timestamp(a["start_utc"]), pd.Timestamp(a["end_utc"])
+    t = pd.Timestamp(now)
+    if t >= en:
+        return "Ended"
+    if t >= st:
+        return "Happening now"
+    m = round((st - t).total_seconds() / 60)
+    return f"Starts in {m} min" if m < 60 else f"Starts in {m // 60} h {m % 60} min"
+
+
+def _value(a: dict) -> str:
+    if a["type"] == "LOW_CONFIDENCE":
+        import re
+        m = re.search(r"trust score (\d+)", a["message"])
+        return f"score {m.group(1)}" if m else "-"
+    return f"{a['magnitude_mw']:.1f} MW"
+
+
 def format_alert(plant: str, a: dict) -> tuple[str, list[str]]:
-    window = f"{_ist(a['start_utc'])} to {_ist(a['end_utc'])} IST"
+    """The alert as the dashboard card shows it. Returns (plain text, the five template variables):
+    1 plant, 2 title + source + timing, 3 message, 4 what to do, 5 window and value."""
+    start, end = _ist(a["start_utc"]), _ist(a["end_utc"])
+    window = f"{start} to {end} IST \u00b7 {_value(a)}"
+    head = f"{ALERT_LABEL.get(a['type'], a['type'])} \u00b7 {a['source'].capitalize()} \u00b7 {_timing(a)}"
+    action = ALERT_ACTION.get(a["type"], "")
     url = get_settings().public_url.rstrip("/") + "/alerts"
-    text = f"Vidyut CRITICAL alert for {plant}\n{a['message']}\nWhen: {window}\nOpen: {url}"
-    return text, [plant, a["message"], window]
+    text = (f"Vidyut CRITICAL alert for {plant}\n{head}\n{a['message']}\n"
+            + (f"What to do: {action}\n" if action else "") + f"When: {window}\nOpen: {url}")
+    return text, [plant, head, a["message"], action or "See the Alerts page.", window]
 
 
 def record(user_id: str, key: str, to: str, status: str, detail: str, message: str) -> None:

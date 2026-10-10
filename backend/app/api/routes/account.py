@@ -113,7 +113,7 @@ def notify_test(user: CurrentUser) -> dict:
         raise HTTPException(422, "Add a WhatsApp number in Plant settings and save first.")
     name = (p.get("values") or {}).get("plant_name") or "your plant"
     text = f"Vidyut test message for {name}. Critical alerts for this plant will arrive on this number."
-    status, detail = notify.send_whatsapp(num, text, [name, "Test message: alerts are set up.", "now"])
+    status, detail = notify.send_whatsapp(num, text, [name, "Test message \u00b7 Vidyut \u00b7 now", "Alerts are set up for this number.", "Nothing to do; this is only a test.", "no window \u00b7 0.0 MW"])
     notify.record(user.id, f"TEST|{status}", num, status, detail, text)
     return {"status": status, "detail": detail}
 
