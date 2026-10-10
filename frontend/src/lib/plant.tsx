@@ -164,11 +164,23 @@ export function ActivePlantProvider({ children }: { children: React.ReactNode })
     }),
   });
   const pushSave = save.mutate;
-  const pulledFor = useRef<string | null>(null);
+  const pulledFor = useRef<string | null>(null);      // user whose stored plant has been loaded; pushes wait for it
+  const wasSignedIn = useRef(false);
+  const [pullTry, setPullTry] = React.useState(0);
   useEffect(() => {
-    if (!userId || pulledFor.current === userId) return;
-    pulledFor.current = userId;
+    if (!userId) {
+      // Signed out (or deleted): drop the plant so the next person on this browser does not inherit it.
+      if (wasSignedIn.current) write({ ...EMPTY, keys: read().keys });
+      wasSignedIn.current = false;
+      pulledFor.current = null;
+      return;
+    }
+    wasSignedIn.current = true;
+    if (pulledFor.current === userId) return;
+    let cancelled = false;
     api<PlantStored>("/me/plant").then((p) => {
+      if (cancelled) return;
+      pulledFor.current = userId;
       if (p.version && p.version > 0) {
         const cal = p.calibration && Object.keys(p.calibration).length ? (p.calibration as unknown as CalibrationState) : null;
         write({ ...read(), values: (p.values ?? {}) as Values, siteId: p.site_id ?? null, liveHome: !!p.live_home,
@@ -176,11 +188,12 @@ export function ActivePlantProvider({ children }: { children: React.ReactNode })
       } else {
         pushSave(read());                                  // first sign-in: keep what this browser already has
       }
-    }).catch(() => { pulledFor.current = null; });
-  }, [userId, pushSave]);
+    }).catch(() => { if (!cancelled) setTimeout(() => setPullTry((n) => n + 1), 3000); });   // retry; never push over an unread account
+    return () => { cancelled = true; };
+  }, [userId, pushSave, pullTry]);
   const persist = useCallback((next: PlantStore) => {
     write(next);
-    if (userId) pushSave(next);
+    if (userId && pulledFor.current === userId) pushSave(next);
   }, [userId, pushSave]);
 
   /* ---- live run for the selected site and plant ---- */
