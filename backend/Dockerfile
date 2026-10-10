@@ -27,8 +27,8 @@ COPY docs docs
 # Live weather is read from files the "Prefetch weather" workflow publishes, before Open-Meteo is called.
 ENV TERRA_WEATHER_PREFETCH_URL="https://raw.githubusercontent.com/OVERxPOWERED/AGNITIA-TERRA06/weather-data"
 
-ARG ARTIFACT_URL="https://github.com/OVERxPOWERED/AGNITIA-TERRA06/releases/download/artifacts-20261009-b/terra-artifacts-20261009T161221Z.zip"
-ARG ARTIFACT_SHA256="58b1eab943e7378a6eb9c80f5e551aa2cc6ff11f9d51b5f821fcbc2b23e68f86"
+ARG ARTIFACT_URL="https://github.com/OVERxPOWERED/AGNITIA-TERRA06/releases/download/artifacts-20261010/terra-artifacts-20261010T004902Z.zip"
+ARG ARTIFACT_SHA256="c65848a20cb602998356a27758475e0b28708f6963220ad1643f70772b5dcb2c"
 
 RUN if [ -n "$ARTIFACT_URL" ]; then \
       echo "Downloading runtime artifacts from ${ARTIFACT_URL}..." && \
